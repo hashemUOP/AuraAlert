@@ -14,6 +14,7 @@ import 'package:aura_alert/navbar_pages/first_screen.dart';
 import 'package:aura_alert/navbar_pages/second_screen.dart';
 import 'package:aura_alert/navbar_pages/third_screen.dart';
 import 'package:aura_alert/navbar_pages/fourth_screen.dart';
+import 'package:aura_alert/navbar_pages/fifth_screen.dart';
 import 'package:flutter/services.dart';
 
 class MyNavBar extends StatefulWidget {
@@ -55,6 +56,7 @@ class _MyNavBarState extends State<MyNavBar> {
     const SecondScreen(),
     const ThirdScreen(),
     const FourthScreen(),
+    const FifthScreen()
   ];
 
   /*

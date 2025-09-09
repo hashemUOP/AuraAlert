@@ -2,6 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:aura_alert/login/bg_video_widget.dart';
+import 'package:aura_alert/navbar_pages/navbar.dart';
 // import 'package:ward/login/auth_service_google.dart';
 // import 'package:ward/login/phone_auth_page.dart';
 
@@ -86,6 +87,11 @@ class _LoginState extends State<Login> {
                   _buildInputContainer(
                     FontAwesomeIcons.google,
                     'Continue with Google',
+                    onTap: () =>
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MyNavBar()),
+                      )
                     // onTap: () async {
                     //   setState(() {
                     //     isLoading = true; // Show loading indicator
