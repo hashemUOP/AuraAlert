@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:aura_alert/theme.dart';
 
 class BackgroundVideoWidget extends StatefulWidget {
   const BackgroundVideoWidget({super.key});
@@ -14,7 +15,7 @@ class _BackgroundVideoWidgetState extends State<BackgroundVideoWidget> {
   @override
   void initState() {
     super.initState();
-    videoController = VideoPlayerController.asset('assets/videos/202406151630.mp4')
+    videoController = VideoPlayerController.asset('assets/videos/Background_shooting_star.mp4')
       ..initialize().then((_) {
         setState(() {
           videoController.play();
@@ -47,7 +48,7 @@ class _BackgroundVideoWidgetState extends State<BackgroundVideoWidget> {
           ),
         ],
       )
-          : Center(child: CircularProgressIndicator(color: Colors.green.shade500,)),//if video didn't appear show a loading circle
+          : Center(child: CircularProgressIndicator(color: AppColors.accentDarkPurple,)),//if video didn't appear show a loading circle
     );
   }
 }
