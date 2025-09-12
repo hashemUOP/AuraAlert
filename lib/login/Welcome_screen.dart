@@ -3,23 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:aura_alert/login/bg_video_widget.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
-// import 'package:ward/login/auth_service_google.dart';
-// import 'package:ward/login/phone_auth_page.dart';
+import 'package:aura_alert/theme.dart'; // استيراد ملف الثيم الخاص بك
 
-class Login extends StatefulWidget {
-  const Login({super.key});
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key});
 
   @override
-  State<Login> createState() => _LoginState();
+  State<WelcomeScreen> createState() => _LoginState();
 }
 
-class _LoginState extends State<Login> {
-  // final AuthService _authService = AuthService(); // Use AuthService instead of FirebaseAuth
+class _LoginState extends State<WelcomeScreen> {
   bool isLoading = false; // Track loading state
 
   @override
   Widget build(BuildContext context) {
+    // الوصول إلى الألوان من الثيم
+    final Color primaryColor = Theme.of(context).primaryColor;
+    final Color accentColor = Theme.of(context).hintColor; // hintColor هو نفسه secondary في colorScheme
+    final Color textColor = Theme.of(context).textTheme.bodyLarge!.color!; // لون النص من الثيم
+    final Color lightTextColor = AppColors.lightTextColor; // لون نص فاتح ثابت من AppColors
+
     double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
 
     double containerResponsiveHeight() {
       if (screenHeight < 600) {
@@ -29,7 +34,6 @@ class _LoginState extends State<Login> {
       }
     }
 
-    double screenWidth = MediaQuery.of(context).size.width;
     return Stack(
       children: [
         const BackgroundVideoWidget(),
@@ -37,9 +41,9 @@ class _LoginState extends State<Login> {
           alignment: Alignment.bottomCenter,
           child: Container(
             width: double.infinity,
-            height: containerResponsiveHeight(),
+            height: containerResponsiveHeight()*1.3,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(1),
+              color: AppColors.primaryDarkBlue, // استخدام لون الخلفية من الثيم
               borderRadius:
               const BorderRadius.vertical(top: Radius.circular(40)),
             ),
@@ -48,36 +52,35 @@ class _LoginState extends State<Login> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 40.0),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 80.0),
                     child: Text(
-                      'Welcome to Ward !',
-                      style: TextStyle(
-                        color: Colors.black87,
+                      'Welcome to Aura Alert !',
+                      style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                        color: Colors.white, // استخدام primaryColor من الثيم
                         fontWeight: FontWeight.w600,
-                        fontFamily: 'Tajawal',
-                        fontSize: 20,
+                        // fontFamily: 'Tajawal', // إذا كان الخط Tajawal معرفاً في الثيم، سيعمل تلقائياً
                         decoration: TextDecoration.none,
                       ),
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 40.0),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 40.0),
                     child: Text(
                       'Sign In to Continue.',
-                      style: TextStyle(
-                        color: Colors.black87,
+                      style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                        color: primaryColor.withOpacity(0.8), // لون أغمق قليلاً
                         fontWeight: FontWeight.w400,
-                        fontFamily: 'Tajawal',
-                        fontSize: 12,
+                        // fontFamily: 'Tajawal',
                         decoration: TextDecoration.none,
                       ),
                     ),
                   ),
                   const SizedBox(height: 15),
                   _buildInputContainer(
-                    FontAwesomeIcons.squarePhone,
-                    'Continue with phone number',
+                    context, // تمرير السياق للوصول إلى الثيم
+                    FontAwesomeIcons.rightToBracket,
+                    '  Login',
                     // onTap: () => Navigator.push(
                     //   context,
                     //   MaterialPageRoute(builder: (context) => const MyPhone()),
@@ -85,22 +88,14 @@ class _LoginState extends State<Login> {
                   ),
                   const SizedBox(height: 20),
                   _buildInputContainer(
-                    FontAwesomeIcons.google,
-                    'Continue with Google',
+                    context, // تمرير السياق للوصول إلى الثيم
+                    FontAwesomeIcons.userPlus,
+                    '   Sign-Up',
                     onTap: () =>
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => MyNavBar()),
-                      )
-                    // onTap: () async {
-                    //   setState(() {
-                    //     isLoading = true; // Show loading indicator
-                    //   });
-                    //   await _authService.handleGoogleSignIn(context);
-                    //   setState(() {
-                    //     isLoading = false; // Hide loading indicator after sign-in
-                    //   });
-                    // },
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const MyNavBar()),
+                        ),
                   ),
                   SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
                 ],
@@ -120,31 +115,30 @@ class _LoginState extends State<Login> {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
+                  color: Theme.of(context).scaffoldBackgroundColor, // لون خلفية الثيم
                 ),
                 width: screenWidth,
                 height: 70,
-                child: const Row(
+                child: Row(
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 20,
                     ),
                     CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                      valueColor: AlwaysStoppedAnimation<Color>(accentColor), // لون التحميل بنفس لون accent
                     ),
-                    SizedBox(
+                    const SizedBox(
                       width: 21,
                     ),
                     Expanded(
                         child: AutoSizeText(
                           "Your request is being processed...",
                           maxLines: 2,
-                          style: TextStyle(
-                              decoration: TextDecoration.none, // this removes any underline
-                              fontSize: 16,
-                              color: Colors.black,
-                              fontWeight: FontWeight.w300,
-                              fontFamily: "Tajawal"
+                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                            color: textColor, // لون النص من الثيم
+                            fontWeight: FontWeight.w300,
+                            // fontFamily: "Tajawal",
+                            decoration: TextDecoration.none,
                           ),
                         ))
                   ],
@@ -157,8 +151,14 @@ class _LoginState extends State<Login> {
   }
 }
 
-Widget _buildInputContainer(IconData icon, String placeholder,
+// تم تعديل الدالة لتأخذ BuildContext
+Widget _buildInputContainer(BuildContext context, IconData icon, String placeholder,
     {VoidCallback? onTap}) {
+  // الوصول إلى الألوان من الثيم
+  final Color primaryColor = Theme.of(context).primaryColor;
+  final Color accentColor = Theme.of(context).hintColor;
+  final Color textColor = Theme.of(context).textTheme.bodyLarge!.color!;
+
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 40.0),
     child: GestureDetector(
@@ -168,21 +168,24 @@ Widget _buildInputContainer(IconData icon, String placeholder,
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.all(Radius.circular(10)),
-          color: Colors.white,
-          border: Border.all(color: Colors.black87),
+          color: accentColor, // استخدام accentColor كلون خلفية للزر
+          border: Border.all(color: primaryColor, width: 2), // حد أزرق داكن
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             const SizedBox(width: 15),
-            Icon(icon),
+            Icon(
+              icon,
+              color: AppColors.lightTextColor, // لون الأيقونة أبيض فاتح
+              size: 20, // حجم الأيقونة
+            ),
             const SizedBox(width: 10),
             Text(
               placeholder,
-              style: const TextStyle(
-                fontFamily: 'Tajawal',
-                color: Colors.black87,
-                fontSize: 12,
+              style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                color: AppColors.lightTextColor, // لون النص أبيض فاتح
+                fontSize: 16, // حجم الخط للزر
                 decoration: TextDecoration.none,
               ),
             ),
