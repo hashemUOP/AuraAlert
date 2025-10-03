@@ -40,6 +40,11 @@ dependencies:
   google_nav_bar: ^5.0.7
   iconsax: ^0.0.8
   internet_connection_checker: ^3.0.1
+  firebase_core: ^4.1.1
+  firebase_auth: ^6.1.0
+  cloud_firestore: ^6.0.2
+  google_fonts: ^6.3.2
+  google_sign_in: ^7.2.0
 
 dev_dependencies:
   flutter_test:

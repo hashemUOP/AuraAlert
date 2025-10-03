@@ -1,10 +1,11 @@
+import 'package:aura_alert/login/create_account.dart';
+import 'package:aura_alert/login/email.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:aura_alert/login/bg_video_widget.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
-// import 'package:ward/login/auth_service_google.dart';
-// import 'package:ward/login/phone_auth_page.dart';
+import 'package:aura_alert/global_widgets/custom_text.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -14,8 +15,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  // final AuthService _authService = AuthService(); // Use AuthService instead of FirebaseAuth
-  bool isLoading = false; // Track loading state
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +25,12 @@ class _LoginState extends State<Login> {
       if (screenHeight < 600) {
         return screenHeight * 0.5;
       } else {
-        return screenHeight * 0.3;
+        return screenHeight * 0.32;
       }
     }
 
     double screenWidth = MediaQuery.of(context).size.width;
+
     return Stack(
       children: [
         const BackgroundVideoWidget(),
@@ -40,8 +41,7 @@ class _LoginState extends State<Login> {
             height: containerResponsiveHeight(),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(1),
-              borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(40)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -50,58 +50,62 @@ class _LoginState extends State<Login> {
                   const SizedBox(height: 20),
                   const Padding(
                     padding: EdgeInsets.only(left: 40.0),
-                    child: Text(
+                    child: CustomText(
                       'Welcome to Ward !',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Tajawal',
-                        fontSize: 20,
-                        decoration: TextDecoration.none,
-                      ),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                      fromLeft: 0,
                     ),
                   ),
                   const Padding(
                     padding: EdgeInsets.only(left: 40.0),
-                    child: Text(
+                    child: CustomText(
                       'Sign In to Continue.',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: 'Tajawal',
-                        fontSize: 12,
-                        decoration: TextDecoration.none,
-                      ),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black87,
+                      fromLeft: 0,
                     ),
                   ),
                   const SizedBox(height: 15),
                   _buildInputContainer(
-                    FontAwesomeIcons.squarePhone,
-                    'Continue with phone number',
-                    // onTap: () => Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(builder: (context) => const MyPhone()),
-                    // ),
-                  ),
+                      FontAwesomeIcons.google,
+                      'Continue with Google',
+                      onTap: () =>
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => MyNavBar()))),
                   const SizedBox(height: 20),
                   _buildInputContainer(
-                    FontAwesomeIcons.google,
-                    'Continue with Google',
-                    onTap: () =>
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => MyNavBar()),
-                      )
-                    // onTap: () async {
-                    //   setState(() {
-                    //     isLoading = true; // Show loading indicator
-                    //   });
-                    //   await _authService.handleGoogleSignIn(context);
-                    //   setState(() {
-                    //     isLoading = false; // Hide loading indicator after sign-in
-                    //   });
-                    // },
+                    Icons.email,
+                    'Continue with email',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Email())),
                   ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CustomText(
+                        "No account yet? ",
+                        fontSize: 12,
+                        color: Colors.black,
+                        fromLeft: 0,
+
+                      ),
+                      const SizedBox(width: 5),
+                      GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Signin())),
+                        child: const CustomText(
+                          "Sign up here",
+                          fontSize: 12,
+                          color: Colors.black,
+                          decoration: TextDecoration.underline,
+                          fromLeft: 0,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                   SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
                 ],
               ),
@@ -112,7 +116,7 @@ class _LoginState extends State<Login> {
           const ModalBarrier(
             dismissible: false,
             color: Colors.black38,
-          ), //if user press
+          ),
         if (isLoading)
           Center(
             child: Padding(
@@ -126,27 +130,23 @@ class _LoginState extends State<Login> {
                 height: 70,
                 child: const Row(
                   children: [
-                    SizedBox(
-                      width: 20,
-                    ),
+                    SizedBox(width: 20),
                     CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
                     ),
-                    SizedBox(
-                      width: 21,
-                    ),
+                    SizedBox(width: 21),
                     Expanded(
-                        child: AutoSizeText(
-                          "Your request is being processed...",
-                          maxLines: 2,
-                          style: TextStyle(
-                              decoration: TextDecoration.none, // this removes any underline
-                              fontSize: 16,
-                              color: Colors.black,
-                              fontWeight: FontWeight.w300,
-                              fontFamily: "Tajawal"
-                          ),
-                        ))
+                      child: AutoSizeText(
+                        "Your request is being processed...",
+                        maxLines: 2,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black,
+                          fontWeight: FontWeight.w300,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -157,8 +157,7 @@ class _LoginState extends State<Login> {
   }
 }
 
-Widget _buildInputContainer(IconData icon, String placeholder,
-    {VoidCallback? onTap}) {
+Widget _buildInputContainer(IconData icon, String placeholder, {VoidCallback? onTap}) {
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 40.0),
     child: GestureDetector(
@@ -177,14 +176,11 @@ Widget _buildInputContainer(IconData icon, String placeholder,
             const SizedBox(width: 15),
             Icon(icon),
             const SizedBox(width: 10),
-            Text(
+            CustomText(
               placeholder,
-              style: const TextStyle(
-                fontFamily: 'Tajawal',
-                color: Colors.black87,
-                fontSize: 12,
-                decoration: TextDecoration.none,
-              ),
+              fontSize: 12,
+              color: Colors.black87,
+              fromLeft: 0,
             ),
           ],
         ),
