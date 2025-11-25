@@ -5,8 +5,8 @@
 // import 'package:iconsax/iconsax.dart';
 // import 'package:aura_alert/global_widgets/animated_button.dart';
 // import 'package:aura_alert/global_widgets/custom_text.dart';
-// import 'package:aura_alert/login/auth_services.dart';
-// import 'package:aura_alert/login/login.dart';
+// import 'package:aura_alert/login_signup_welcome/auth_services.dart';
+// import 'package:aura_alert/login_signup_welcome/login_signup_welcome.dart';
 // import 'package:aura_alert/global_widgets/color_changing_container.dart';
 //
 // class FifthScreen extends StatefulWidget {

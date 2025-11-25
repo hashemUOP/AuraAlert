@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import 'package:aura_alert/login/login.dart';
+import 'package:aura_alert/login_signup_welcome/login/login_screen.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
 
 class AuthService {
@@ -121,7 +121,7 @@ class AuthService {
 
         if (context.mounted) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const Login()),
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
           );
         }
       } catch (e) {

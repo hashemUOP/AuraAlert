@@ -21,7 +21,7 @@ class _BackgroundVideoWidgetState extends State<BackgroundVideoWidget> {
           videoController.setLooping(true);
         });
       });
-  }//on initial show the login video
+  }//on initial show the login_signup_welcome video
 
   @override
   void dispose() {

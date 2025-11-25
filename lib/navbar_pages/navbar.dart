@@ -62,7 +62,7 @@ class _MyNavBarState extends State<MyNavBar> {
   /*
   // this code do the following when the user is in the MyNavBar page and pops(try's to go the previous page(Login)
   he gets an alert dialog
-  which prevents poping back to the login page unless  he go to settings and log out or delete account
+  which prevents poping back to the login_signup_welcome page unless  he go to settings and log out or delete account
    */
   Future<bool> _onWillPop() async {
     final shouldExit = await showDialog<bool>(

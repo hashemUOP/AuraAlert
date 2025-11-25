@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'login/login.dart';
+import 'package:aura_alert/login_signup_welcome/screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
-import 'package:aura_alert/login/auth_services.dart';
+import 'package:aura_alert/login_signup_welcome/auth_services.dart';
 
 Future<void> main() async {
   //initialize connection between project and firebase includes all services such as firestore,auth
@@ -64,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
       } else {
         // User is signed out, navigate to Login
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const Login()),
+          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
         );
       }
     });
