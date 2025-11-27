@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "312621973762",
+    "project_id": "auraalert-d2fb4",
+    "storage_bucket": "auraalert-d2fb4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:312621973762:android:7de81b1fd7cf573840021b",
+        "android_client_info": {
+          "package_name": "com.example.aura_alert"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWRgoe6XncmYjOKuKfjmLoGxQnnJK2v80"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
