@@ -19,7 +19,11 @@ class AuthService {
   /// -----------------------------
   Future<void> initializeGoogleSignIn() async {
     if (!_isInitialized) {
-      await _googleSignIn.initialize();
+      try {
+        await _googleSignIn.initialize();
+      } catch (e) {
+        debugPrint("GoogleSignIn initialize skipped: $e");
+      }
       _isInitialized = true;
     }
   }

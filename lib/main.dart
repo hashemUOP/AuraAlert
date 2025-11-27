@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:aura_alert/login_signup_welcome/screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
 import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
 import 'package:aura_alert/login_signup_welcome/auth_services.dart';
+import 'package:aura_alert/gemini_api_key.dart';
 
 Future<void> main() async {
   //initialize connection between project and firebase includes all services such as firestore,auth
@@ -13,6 +15,8 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  Gemini.init(apiKey: apiKey);
 
   runApp(const MyApp());
 }
