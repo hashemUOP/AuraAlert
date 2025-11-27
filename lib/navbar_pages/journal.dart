@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-class FirstScreen extends StatefulWidget {
-  const FirstScreen({super.key});
+
+class Journal extends StatefulWidget {
+  const Journal({super.key});
 
   @override
-  State<FirstScreen> createState() => _FirstScreenState();
+  State<Journal> createState() => _JournalState();
 }
 
-class _FirstScreenState extends State<FirstScreen> {
+class _JournalState extends State<Journal> {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -14,7 +15,7 @@ class _FirstScreenState extends State<FirstScreen> {
     return  Container(
       height: screenHeight,
       width: screenWidth,
-        color: Colors.blue,
+      color: Colors.greenAccent,
     );
   }
 }

@@ -10,11 +10,11 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:aura_alert/navbar_pages/first_screen.dart';
-import 'package:aura_alert/navbar_pages/second_screen.dart';
-import 'package:aura_alert/navbar_pages/third_screen.dart';
-import 'package:aura_alert/navbar_pages/fourth_screen.dart';
-import 'package:aura_alert/navbar_pages/fifth_screen.dart';
+import 'package:aura_alert/navbar_pages/Home.dart';
+import 'package:aura_alert/navbar_pages/reminders.dart';
+import 'package:aura_alert/navbar_pages/chatbot.dart';
+import 'package:aura_alert/navbar_pages/journal.dart';
+import 'package:aura_alert/navbar_pages/settings.dart';
 import 'package:flutter/services.dart';
 
 class MyNavBar extends StatefulWidget {
@@ -52,17 +52,17 @@ class _MyNavBarState extends State<MyNavBar> {
   }
 
   List<Widget> pages = [
-    const FirstScreen(),
-    const SecondScreen(),
-    const ThirdScreen(),
-    const FourthScreen(),
-    const FifthScreen()
+    const Home(),
+    const Reminders(),
+    const ChatBot(),
+    const Journal(),
+    const Settings()
   ];
 
   /*
   // this code do the following when the user is in the MyNavBar page and pops(try's to go the previous page(Login)
   he gets an alert dialog
-  which prevents poping back to the login_signup_welcome page unless  he go to settings and log out or delete account
+  which prevents poping back to the login page unless  he go to settings and log out or delete account
    */
   Future<bool> _onWillPop() async {
     final shouldExit = await showDialog<bool>(
@@ -148,20 +148,21 @@ class _MyNavBarState extends State<MyNavBar> {
                   text: 'Home',
                 ),
                 GButton(
-                  icon: FontAwesomeIcons.leaf,
-                  text: 'My Garden',
+                  icon: Iconsax.timer_1,
+                  text: 'Reminders',
                 ),
                 GButton(
                   icon: Iconsax.messages,
                   text: 'ChatBot',
                 ),
                 GButton(
-                  icon: FontAwesomeIcons.stethoscope,
-                  text: 'Diagnose',
+                  // icon: FontAwesomeIcons.notesMedical,
+                  icon: Iconsax.book_1,
+                  text: 'Journal',
                 ),
                 GButton(
-                  icon: Iconsax.user_tag4,
-                  text: 'Account',
+                  icon: Iconsax.setting_2,
+                  text: 'Settings',
                 ),
               ],
             ),

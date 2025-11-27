@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class FourthScreen extends StatefulWidget {
-  const FourthScreen({super.key});
+class ChatBot extends StatefulWidget {
+  const ChatBot({super.key});
 
   @override
-  State<FourthScreen> createState() => _FourthScreenState();
+  State<ChatBot> createState() => _ChatBotState();
 }
 
-class _FourthScreenState extends State<FourthScreen> {
+class _ChatBotState extends State<ChatBot> {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -15,7 +15,7 @@ class _FourthScreenState extends State<FourthScreen> {
     return  Container(
       height: screenHeight,
       width: screenWidth,
-      color: Colors.greenAccent,
+      color: Colors.yellow,
     );
   }
 }
