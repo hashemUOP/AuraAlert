@@ -37,6 +37,7 @@ class _Question1ScreenState extends State<Question1Screen> {
           // Align all content to the left
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SizedBox(height: 35,),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

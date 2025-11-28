@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../login/login_screen.dart';
 import 'question_5.dart';
-import  'package:aura_alert/global_widgets/custom_text.dart';
+import 'package:aura_alert/global_widgets/custom_text.dart';
 
 
 class Question4Screen extends StatelessWidget {

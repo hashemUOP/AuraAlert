@@ -23,7 +23,7 @@ class WelcomeScreen extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(18),
                       child: Image.asset(
-                        'images/AuraAlert_logo.png',
+                        'assets/images/AuraAlert_logo.png',
                         width: 180,
                       ),
                     ),

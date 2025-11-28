@@ -2,10 +2,20 @@ import 'package:flutter/material.dart';
 import '../login/login_screen.dart';
 import 'question_3.dart';
 import  'package:aura_alert/global_widgets/custom_text.dart';
+import 'package:aura_alert/login_signup_welcome/auth_services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class Question2Screen extends StatelessWidget {
+class Question2Screen extends StatefulWidget {
   const Question2Screen({super.key});
 
+  @override
+  State<Question2Screen> createState() => _Question2ScreenState();
+}
+
+class _Question2ScreenState extends State<Question2Screen> {
+  final AuthService _authService =
+  AuthService(); // Use AuthService instead of FirebaseAuth
+  bool isLoading = false; // Track loading state
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,7 +81,8 @@ class Question2Screen extends StatelessWidget {
                   hintStyle: TextStyle(color: Colors.grey[400]),
                   filled: true,
                   fillColor: Colors.grey[100],
-                  contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                  contentPadding: const EdgeInsets.symmetric(
+                      vertical: 18, horizontal: 20),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none, // No visible border
@@ -98,11 +109,16 @@ class Question2Screen extends StatelessWidget {
               ),
               const SizedBox(height: 30),
 
-              // --- GOOGLE SIGN IN BUTTON ---
+              // --- GOOGLE Log IN BUTTON ---
               ElevatedButton(
-                onPressed: () {
-                  // TODO: Add Google Sign-In logic
-                  print('Continue with Google pressed');
+                onPressed: () async {
+                  setState(() {
+                    isLoading = true; // Show loading indicator
+                  });
+                  await _authService.handleGoogleSignIn(context);
+                  setState(() {
+                    isLoading = false; // Hide loading indicator after sign-in
+                  });
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey[100],
@@ -117,7 +133,7 @@ class Question2Screen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(
-                      'images/google_logo.png',
+                      'assets/images/google_logo.png',
                       height: 22,
                       width: 22,
                     ),
@@ -141,7 +157,8 @@ class Question2Screen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const Question3Screen()),
+                    MaterialPageRoute(
+                        builder: (context) => const Question3Screen()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -175,7 +192,8 @@ class Question2Screen extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => const LoginScreen()),
                       );
                     },
                     child: const CustomText(
@@ -196,3 +214,4 @@ class Question2Screen extends StatelessWidget {
     );
   }
 }
+

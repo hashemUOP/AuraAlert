@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import  'package:aura_alert/global_widgets/custom_text.dart';
-import '../login/login_screen.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
 import 'package:aura_alert/login_signup_welcome/auth_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';

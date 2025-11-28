@@ -6,14 +6,12 @@ sending user to a new route(page),in other words doesn't keep old route in stack
 as if the new route is the top of stack and only element in it
 
  */
+import 'package:aura_alert/navbar_pages/ChatBotMain.dart';
 import 'package:aura_alert/navbar_pages/Home.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:aura_alert/navbar_pages/home/HomePatient.dart';
 import 'package:aura_alert/navbar_pages/reminders.dart';
-import 'package:aura_alert/navbar_pages/chatbot.dart';
 import 'package:aura_alert/navbar_pages/journal.dart';
 import 'package:aura_alert/navbar_pages/settings.dart';
 import 'package:flutter/services.dart';
@@ -55,7 +53,7 @@ class _MyNavBarState extends State<MyNavBar> {
   List<Widget> pages = [
     const Home(),
     const Reminders(),
-    const ChatBot(),
+    const ChatBotMain(),
     const Journal(),
     const Settings()
   ];

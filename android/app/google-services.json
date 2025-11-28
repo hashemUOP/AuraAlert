@@ -12,7 +12,20 @@
           "package_name": "com.example.aura_alert"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "312621973762-o16s9o7shgirv1e98i4ob90qsu48248a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.aura_alert",
+            "certificate_hash": "4954315759167b0acf2f27a512838efa4581616d"
+          }
+        },
+        {
+          "client_id": "312621973762-s77b0kfd1j73u3gp6o2iid2c9odc90o3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCWRgoe6XncmYjOKuKfjmLoGxQnnJK2v80"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "312621973762-s77b0kfd1j73u3gp6o2iid2c9odc90o3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "312621973762-l9qf4va2funi561gvpr0p995ovrlb1kd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.auraAlert"
+              }
+            }
+          ]
         }
       }
     }

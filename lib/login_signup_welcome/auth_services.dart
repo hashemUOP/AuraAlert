@@ -1,24 +1,20 @@
+import 'package:aura_alert/login_signup_welcome/screens/welcome_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-import 'package:aura_alert/login_signup_welcome/login/login_screen.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // v7 uses singleton instance
+  // Only used on Mobile
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   bool _isInitialized = false;
 
-  /// -----------------------------
-  /// REQUIRED FOR GOOGLE SIGN-IN v7
-  /// -----------------------------
   Future<void> initializeGoogleSignIn() async {
-    if (!_isInitialized) {
+    if (!_isInitialized && !kIsWeb) {
       try {
         await _googleSignIn.initialize();
       } catch (e) {
@@ -29,13 +25,36 @@ class AuthService {
   }
 
   /// -----------------------------
-  /// GOOGLE LOGIN (v7 API)
+  /// GOOGLE LOGIN (WEB + MOBILE)
   /// -----------------------------
   Future<void> handleGoogleSignIn(BuildContext context) async {
     try {
+      // ------------------------------------
+      // 1️⃣ WEB LOGIN (NO google_sign_in HERE)
+      // ------------------------------------
+      if (kIsWeb) {
+        GoogleAuthProvider googleProvider = GoogleAuthProvider();
+
+        googleProvider
+          ..addScope('email')
+          ..setCustomParameters({'prompt': 'select_account'});
+
+        await _auth.signInWithPopup(googleProvider);
+
+        if (context.mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const MyNavBar()),
+          );
+        }
+        return;
+      }
+
+      // ------------------------------------
+      // 2️⃣ MOBILE LOGIN (ANDROID / IOS)
+      // ------------------------------------
       await initializeGoogleSignIn();
 
-      // Prevent conflict login
       try {
         await _googleSignIn.signOut();
       } catch (_) {}
@@ -53,12 +72,10 @@ class AuthService {
         throw Exception("Google sign-in missing ID Token");
       }
 
-      // ACCESS TOKEN (v7 way)
-      final GoogleSignInClientAuthorization? authorization =
-      await googleUser.authorizationClient
-          .authorizationForScopes(['email']);
+      final authorization =
+      await googleUser.authorizationClient.authorizationForScopes(['email']);
 
-      final AuthCredential credential = GoogleAuthProvider.credential(
+      final credential = GoogleAuthProvider.credential(
         idToken: idToken,
         accessToken: authorization?.accessToken,
       );
@@ -81,31 +98,27 @@ class AuthService {
   }
 
   /// -----------------------------
-  /// UNIVERSAL LOGOUT (Email + Google)
+  /// UNIVERSAL LOGOUT (mobile+web)
   /// -----------------------------
   Future<void> signOut() async {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Check if logged in with Google
-    final isGoogleUser = user.providerData.any((p) => p.providerId == 'google.com');
+    final isGoogleUser =
+    user.providerData.any((p) => p.providerId == 'google.com');
 
+    // Only sign out GoogleSignIn on mobile
     if (isGoogleUser && !kIsWeb) {
-      // Only sign out Google on mobile (Android/iOS)
       try {
         await _googleSignIn.signOut();
-      } catch (e) {
-        debugPrint("Google sign out ignored: $e");
-      }
+      } catch (_) {}
     }
 
-    // Always sign out Firebase
     await _auth.signOut();
   }
 
-
   /// -----------------------------
-  /// DELETE ACCOUNT (Email + Google)
+  /// DELETE ACCOUNT
   /// -----------------------------
   Future<void> deleteUser(BuildContext context) async {
     final user = _auth.currentUser;
@@ -113,13 +126,12 @@ class AuthService {
 
     try {
       await user.delete();
-
-      await signOut(); // reuse logout logic
+      await signOut();
 
       if (context.mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
         );
       }
     } catch (e) {

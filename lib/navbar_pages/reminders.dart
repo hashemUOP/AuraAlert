@@ -1,3 +1,4 @@
+import 'package:aura_alert/global_widgets/custom_text.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -10,30 +11,14 @@ class Reminders extends StatefulWidget {
   const Reminders({super.key});
 
   @override
-  State<Reminders> createState() => _MyPlantsState();
+  State<Reminders> createState() => _MyRemindersState();
 }
 
-class _MyPlantsState extends State<Reminders> {
+class _MyRemindersState extends State<Reminders> {
   Color containerColor1 = Colors.green.withOpacity(0.1);
   Color containerColor2 = Colors.transparent;
-  bool isPlantTapped = true;
 
   // Dummy data (since Firebase removed)
-  final List<Map<String, dynamic>> plants = [
-    {
-      "plant_id": "001",
-      "common_name": "Carrot",
-      "scientific_name": "Daucus carota",
-      "images": ["https://upload.wikimedia.org/wikipedia/commons/4/40/Carrot.jpg"],
-    },
-    {
-      "plant_id": "002",
-      "common_name": "Tomato",
-      "scientific_name": "Solanum lycopersicum",
-      "images": ["https://upload.wikimedia.org/wikipedia/commons/8/88/Bright_red_tomato_and_cross_section02.jpg"],
-    },
-  ];
-
   final List<Map<String, dynamic>> reminders = [
     {
       "reminder_id": "r001",
@@ -51,11 +36,6 @@ class _MyPlantsState extends State<Reminders> {
     },
   ];
 
-  void onRemovePlant(int index) {
-    setState(() {
-      plants.removeAt(index);
-    });
-  }
 
   void onRemoveReminder(int index) {
     setState(() {
@@ -82,7 +62,7 @@ class _MyPlantsState extends State<Reminders> {
           children: [
             const SafeArea(
               child: Padding(
-                padding: EdgeInsets.only(left: 20),
+                padding: EdgeInsets.only(left: 20,top: 40),
                 child: Text(
                   "No Plants",
                   style: TextStyle(fontSize: 14),
@@ -92,167 +72,21 @@ class _MyPlantsState extends State<Reminders> {
             const Padding(
               padding: EdgeInsets.only(left: 20),
               child: Text(
-                "My Garden",
+                "My Reminders",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19),
               ),
             ),
             const Spacer(),
-            Stack(
-              children: [
-                SizedBox(
-                  width: screenWidth,
-                  height: screenHeight * 0.1,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Image.asset("assets/images/img2-2.png", fit: BoxFit.cover),
-                      ),
-                      Expanded(
-                        child: Image.asset("assets/images/img_2-3.png", fit: BoxFit.cover),
-                      ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  left: 20,
-                  right: 20,
-                  child: Container(
-                    height: screenHeight * 0.06,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                isPlantTapped = true;
-                                containerColor1 = Colors.green.withOpacity(0.2);
-                                containerColor2 = Colors.transparent;
-                              });
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: containerColor1,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text("All Plants"),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                isPlantTapped = false;
-                                containerColor2 = Colors.green.withOpacity(0.2);
-                                containerColor1 = Colors.transparent;
-                              });
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: containerColor2,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text("Reminders"),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
       backgroundColor: const Color(0xFFF4F5F5),
       body: SafeArea(
-        child: isPlantTapped ? buildPlantsSection(screenHeight, screenWidth) : buildRemindersSection(screenHeight, screenWidth),
+        child:  buildRemindersSection(screenHeight, screenWidth),
       ),
     );
   }
 
-  Widget buildPlantsSection(double screenHeight, double screenWidth) {
-    if (plants.isEmpty) return const NoRemindersScreen();
-
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Padding(
-                padding: EdgeInsets.only(left: 20),
-                child: Text("Plants", style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              Padding(
-                padding: EdgeInsets.only(right: 20),
-                child: Text("Add Plant", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Column(
-            children: List.generate(plants.length, (index) {
-              final plant = plants[index];
-              final images = plant['images'] as List<String>;
-              final imageUrl = images.isNotEmpty ? images[0] : "";
-
-              return Container(
-                padding: EdgeInsets.all(screenWidth * 0.02),
-                margin: EdgeInsets.symmetric(vertical: screenHeight * 0.013, horizontal: screenWidth * 0.04),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade500),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      height: screenHeight * 0.1,
-                      width: screenHeight * 0.1,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Image.asset(
-                        "assets/images/no image found.png",
-                        height: screenHeight * 0.1,
-                        width: screenHeight * 0.1,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AutoSizeText(plant['common_name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                          AutoSizeText(plant['scientific_name']),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.more_horiz),
-                      onPressed: () => showModalBottomSheet(
-                        backgroundColor: Colors.grey.shade200,
-                        context: context,
-                        builder: (_) => buildRemoveModal(screenHeight, () => onRemovePlant(index), "Remove from Garden"),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget buildRemindersSection(double screenHeight, double screenWidth) {
     if (reminders.isEmpty) return const NoRemindersScreen();

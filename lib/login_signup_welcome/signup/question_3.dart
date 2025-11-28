@@ -64,7 +64,7 @@ class Question3Screen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       // IMPORTANT: Make sure you have 'flag.png' in assets/images/
-                      child: Image.asset('images/flag.png', width: 30),
+                      child: Image.asset('assets/images/flag.png', width: 30),
                     ),
                     const SizedBox(width: 10),
 
