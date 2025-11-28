@@ -652,7 +652,7 @@ class _CreateReminderState extends State<CreateReminder> {
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      color: Colors.green.shade400,
+                      color: Colors.purple,
                     ),
                     height: 60,
                     child: const Center(
