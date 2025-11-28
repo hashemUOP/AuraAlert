@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../login/login_screen.dart';
 import 'question_3.dart';
-import  'package:aura_alert/global_widgets/custom_text.dart';
+import 'package:aura_alert/global_widgets/custom_text.dart';
 import 'package:aura_alert/login_signup_welcome/auth_services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class Question2Screen extends StatefulWidget {
   const Question2Screen({super.key});
@@ -13,21 +13,111 @@ class Question2Screen extends StatefulWidget {
 }
 
 class _Question2ScreenState extends State<Question2Screen> {
-  final AuthService _authService =
-  AuthService(); // Use AuthService instead of FirebaseAuth
-  bool isLoading = false; // Track loading state
+  final AuthService _authService = AuthService();
+  final TextEditingController _emailController = TextEditingController();
+
+  bool _isEmailValid = false;
+  bool isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  // makes sure that the entered email has valid email format entered to continue
+  void _validateEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    setState(() {
+      _isEmailValid = emailRegex.hasMatch(email);
+    });
+  }
+
+  // --- NEW: Helper function to show the Pop-up ---
+  void _showAccountExistsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: const Text(
+            "Account Exists",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            "This email is already registered.\nPlease log in to your account.",
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            // Button to just close the pop-up and stay on the page
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Closes the dialog
+              },
+              child: const Text(
+                "OK",
+                style: TextStyle(color: Color(0xFF8e44ad), fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _checkEmailAndContinue() async {
+    // 1. Normalize to lowercase to ensure accurate matching
+    final email = _emailController.text.trim().toLowerCase();
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // 2. Check Firestore
+      final QuerySnapshot result = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      // 3. Logic Check
+      if (result.docs.isNotEmpty) {
+        // --- EMAIL EXISTS ---
+        if (!mounted) return;
+
+        // Stop loading
+        setState(() {
+          isLoading = false;
+        });
+
+        // Show the Pop-up Dialog instead of SnackBar
+        _showAccountExistsDialog();
+
+      } else {
+        // --- EMAIL IS NEW ---
+        if (!mounted) return;
+        // Don't stop loading here to prevent button flickering before navigation
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const Question3Screen()),
+        ).then((_) {
+          // Reset loading if user backs out of next screen
+          if (mounted) setState(() => isLoading = false);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error checking email: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   // The back arrow
-      //   leading: IconButton(
-      //     icon: const Icon(Icons.arrow_back, color: Colors.black),
-      //     onPressed: () => Navigator.of(context).pop(),
-      //   ),
-      //   backgroundColor: Colors.white,
-      //   elevation: 0, // Removes the shadow
-      // ),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
@@ -47,19 +137,11 @@ class _Question2ScreenState extends State<Question2Screen> {
                     color: Colors.black54,
                     fromLeft: 0.0,
                   ),
-                  const SizedBox(width: 48), // To balance the IconButton
+                  const SizedBox(width: 48),
                 ],
               ),
               const SizedBox(height: 30),
 
-              // --- HEADER ---
-              // const CustomText(
-              //   'Sign Up',
-              //   fontSize: 16,
-              //   color: Colors.black54,
-              //   fromLeft: 0.0,
-              // ),
-              // const SizedBox(height: 30),
               const Align(
                 alignment: Alignment.centerLeft,
                 child: CustomText(
@@ -72,9 +154,13 @@ class _Question2ScreenState extends State<Question2Screen> {
               ),
               const SizedBox(height: 30),
 
-              // --- EMAIL INPUT FIELD ---
+              // --- EMAIL INPUT ---
               TextField(
+                controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                onChanged: (value) {
+                  _validateEmail(value);
+                },
                 style: const TextStyle(color: Colors.black, fontSize: 16),
                 decoration: InputDecoration(
                   hintText: 'Email Address',
@@ -85,13 +171,15 @@ class _Question2ScreenState extends State<Question2Screen> {
                       vertical: 18, horizontal: 20),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none, // No visible border
+                    borderSide: BorderSide.none,
                   ),
+                  suffixIcon: _isEmailValid
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : null,
                 ),
               ),
               const SizedBox(height: 30),
 
-              // --- "OR" DIVIDER ---
               Row(
                 children: [
                   Expanded(child: Divider(color: Colors.grey[300])),
@@ -109,25 +197,20 @@ class _Question2ScreenState extends State<Question2Screen> {
               ),
               const SizedBox(height: 30),
 
-              // --- GOOGLE Log IN BUTTON ---
               ElevatedButton(
                 onPressed: () async {
-                  setState(() {
-                    isLoading = true; // Show loading indicator
-                  });
+                  setState(() => isLoading = true);
                   await _authService.handleGoogleSignIn(context);
-                  setState(() {
-                    isLoading = false; // Hide loading indicator after sign-in
-                  });
+                  setState(() => isLoading = false);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey[100],
-                  foregroundColor: Colors.black, // Color for text and icon
+                  foregroundColor: Colors.black,
                   minimumSize: const Size(double.infinity, 56),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: 0, // No shadow
+                  elevation: 0,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -149,36 +232,37 @@ class _Question2ScreenState extends State<Question2Screen> {
                 ),
               ),
 
-              // Pushes content below to the bottom
               const Spacer(),
 
               // --- CONTINUE BUTTON ---
               ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const Question3Screen()),
-                  );
-                },
+                onPressed: (_isEmailValid && !isLoading)
+                    ? _checkEmailAndContinue
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF8e44ad),
+                  disabledBackgroundColor: Colors.grey[300],
                   minimumSize: const Size(double.infinity, 56),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const CustomText(
+                child: isLoading
+                    ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                )
+                    : CustomText(
                   "Continue",
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: _isEmailValid ? Colors.white : Colors.grey[600],
                   fromLeft: 0.0,
                 ),
               ),
               const SizedBox(height: 20),
 
-              // --- LOG IN LINK ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -200,7 +284,7 @@ class _Question2ScreenState extends State<Question2Screen> {
                       'Log In',
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF8e44ad), // Use your app's primary color
+                      color: Color(0xFF8e44ad),
                       fromLeft: 0.0,
                     ),
                   ),
@@ -214,4 +298,3 @@ class _Question2ScreenState extends State<Question2Screen> {
     );
   }
 }
-

@@ -135,8 +135,8 @@ class _MyNavBarState extends State<MyNavBar> {
             child: GNav(
               backgroundColor: Colors.white,
               color: Colors.grey,
-              activeColor: Colors.green[500],
-              tabBackgroundColor: Colors.green.shade50,
+              activeColor: Colors.black54,
+              tabBackgroundColor: Color(0xffdf8fff),
               gap: 8,
               padding: const EdgeInsets.all(12),
               selectedIndex: _selectedIndex,
