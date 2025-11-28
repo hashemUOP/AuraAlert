@@ -36,12 +36,12 @@ class NoRemindersScreen extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.green[100], // Background color for the button
+                color: Colors.purple[300], // Background color for the button
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 "Add Reminder",
-                style: TextStyle(color: Colors.green[600], fontWeight: FontWeight.w400),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w400),
               ),
             ),
           )

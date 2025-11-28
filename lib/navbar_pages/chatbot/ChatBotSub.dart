@@ -303,7 +303,7 @@ class _ChatBotState extends State<ChatBot> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Ward's ChatBot", style: TextStyle(color: Colors.black87)),
+        title: const Text("AuraAlert's ChatBot", style: TextStyle(color: Colors.black87)),
         backgroundColor: Colors.white,
         elevation: 1,
         leading: IconButton(

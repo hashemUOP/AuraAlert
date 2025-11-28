@@ -123,7 +123,7 @@ class _MyRemindersState extends State<Reminders> {
                 margin: EdgeInsets.symmetric(vertical: screenHeight * 0.013, horizontal: screenWidth * 0.04),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.green.shade200,
+                  color: Colors.purple[200],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

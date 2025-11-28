@@ -17,8 +17,8 @@ class ChatBotMain extends StatelessWidget {
               const SizedBox(height: 10,),
               const Text("Need some advice?",style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold),),
               Padding(
-                padding:const EdgeInsets.only(left: 40.0,right: 30,top: 10,bottom: 30),
-                child: Text("Our AI powered chat bot is ready to help you with any plant-related problems you may be facing.",style:TextStyle(fontSize: 12,color: Colors.grey.shade700),),
+                padding:const EdgeInsets.only(left: 50.0,right: 50,top: 10,bottom: 30),
+                child: Text("Our AI powered chat bot is ready to help you with any problem you may be facing.",style:TextStyle(fontSize: 12,color: Colors.grey.shade700),),
               ),
               GestureDetector(
                 onTap: () {
