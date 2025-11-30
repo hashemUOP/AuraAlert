@@ -244,7 +244,7 @@ class _ChatBotState extends State<ChatBot> {
       bottomRight: const Radius.circular(12),
     );
 
-    final bgColor = isUser ? Colors.green.shade600 : Colors.grey.shade300;
+    final bgColor = isUser ? Colors.purple.shade300 : Colors.grey.shade300;
     final textColor = isUser ? Colors.white : Colors.black87;
 
     if (m.isImage && m.imagePath != null) {

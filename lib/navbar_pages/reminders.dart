@@ -97,8 +97,8 @@ class _MyRemindersState extends State<Reminders> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 75,
-        backgroundColor: Colors.grey,
+        toolbarHeight: 80,
+        backgroundColor: Colors.grey.shade200,
         automaticallyImplyLeading: false,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(2.0),
@@ -227,10 +227,10 @@ class _MyRemindersState extends State<Reminders> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.purple.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.add, color: Colors.blue),
+                    child:  Icon(Icons.add, color: Colors.purple.shade200),
                   ),
                 ),
               ),
@@ -251,7 +251,7 @@ class _MyRemindersState extends State<Reminders> {
                 ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.purple,
+                  color: Colors.purple.shade300,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
