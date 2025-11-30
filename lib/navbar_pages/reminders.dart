@@ -1,11 +1,12 @@
-import 'package:aura_alert/global_widgets/custom_text.dart';
+// reminders.dart
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:aura_alert/global_widgets/create_reminder.dart';
-import 'package:aura_alert/global_widgets/no_reminders_screen.dart';
-import 'package:intl/intl.dart';
+import 'package:aura_alert/navbar_pages/reminder/create_reminder.dart';
+import 'package:aura_alert/navbar_pages/reminder/no_reminders_screen.dart';
+import 'package:aura_alert/navbar_pages/reminder/reminder_model.dart';
+import 'package:aura_alert/navbar_pages/reminder/storage_service.dart';
 
 class Reminders extends StatefulWidget {
   const Reminders({super.key});
@@ -18,29 +19,75 @@ class _MyRemindersState extends State<Reminders> {
   Color containerColor1 = Colors.green.withOpacity(0.1);
   Color containerColor2 = Colors.transparent;
 
-  // Dummy data (since Firebase removed)
-  final List<Map<String, dynamic>> reminders = [
-    {
-      "reminder_id": "r001",
-      "reminder_date": "25/10/2025",
-      "reminder_time": "08:00 AM",
-      "common_name": "Carrot",
-      "remind_about": "Watering",
-    },
-    {
-      "reminder_id": "r002",
-      "reminder_date": "26/10/2025",
-      "reminder_time": "06:00 PM",
-      "common_name": "Tomato",
-      "remind_about": "Fertilizing",
-    },
-  ];
+  List<ReminderModel> reminders = [];
+  bool isLoading = true;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadReminders();
+  }
 
-  void onRemoveReminder(int index) {
+  // Load reminders from SharedPreferences
+  Future<void> _loadReminders() async {
     setState(() {
-      reminders.removeAt(index);
+      isLoading = true;
     });
+
+    try {
+      final loadedReminders = await StorageService.loadReminders();
+      setState(() {
+        reminders = loadedReminders;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      // Handle error if needed
+      if (kDebugMode) {
+        print('Error loading reminders: $e');
+      }
+    }
+  }
+
+  // Add a new reminder
+  Future<void> addReminder(ReminderModel reminder) async {
+    await StorageService.addReminder(reminder);
+    await _loadReminders(); // Refresh the list
+  }
+
+  // Remove reminder
+  Future<void> onRemoveReminder(int index) async {
+    if (index >= 0 && index < reminders.length) {
+      final reminderId = reminders[index].reminderId;
+      await StorageService.removeReminder(reminderId);
+      await _loadReminders(); // Refresh the list
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reminder removed successfully'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  // Clear all reminders
+  Future<void> _clearAllReminders() async {
+    await StorageService.clearAllReminders();
+    await _loadReminders();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All reminders cleared'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -50,8 +97,8 @@ class _MyRemindersState extends State<Reminders> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 125,
-        backgroundColor: Colors.grey[300],
+        toolbarHeight: 75,
+        backgroundColor: Colors.grey,
         automaticallyImplyLeading: false,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(2.0),
@@ -60,21 +107,50 @@ class _MyRemindersState extends State<Reminders> {
         flexibleSpace: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SafeArea(
+            SafeArea(
               child: Padding(
-                padding: EdgeInsets.only(left: 20,top: 40),
+                padding: const EdgeInsets.only(left: 20, top: 10),
                 child: Text(
-                  "No Plants",
-                  style: TextStyle(fontSize: 14),
+                  "${reminders.length} Reminders",
+                  style: const TextStyle(fontSize: 14),
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(left: 20),
-              child: Text(
-                "My Reminders",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 20),
+                  child: Text(
+                    "My Reminders",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19),
+                  ),
+                ),
+                if (reminders.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 20),
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.grey),
+                      onSelected: (value) {
+                        if (value == 'clear_all') {
+                          _showClearAllDialog();
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'clear_all',
+                          child: Row(
+                            children: [
+                              Icon(Icons.clear_all, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Clear All'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
             const Spacer(),
           ],
@@ -82,11 +158,40 @@ class _MyRemindersState extends State<Reminders> {
       ),
       backgroundColor: const Color(0xFFF4F5F5),
       body: SafeArea(
-        child:  buildRemindersSection(screenHeight, screenWidth),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : buildRemindersSection(screenHeight, screenWidth),
       ),
     );
   }
 
+  void _showClearAllDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Clear All Reminders'),
+          content: const Text(
+            'Are you sure you want to remove all reminders? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _clearAllReminders();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Clear All'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget buildRemindersSection(double screenHeight, double screenWidth) {
     if (reminders.isEmpty) return const NoRemindersScreen();
@@ -100,13 +205,33 @@ class _MyRemindersState extends State<Reminders> {
             children: [
               const Padding(
                 padding: EdgeInsets.only(left: 20),
-                child: Text("Upcoming reminders", style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  "Upcoming reminders",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.only(right: 20),
                 child: GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReminder())),
-                  child: const Icon(Icons.add, color: Colors.grey),
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreateReminder()),
+                    );
+
+                    // If a reminder was created, refresh the list
+                    if (result == true) {
+                      _loadReminders();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.add, color: Colors.blue),
+                  ),
                 ),
               ),
             ],
@@ -120,10 +245,13 @@ class _MyRemindersState extends State<Reminders> {
               final reminder = reminders[index];
               return Container(
                 padding: EdgeInsets.all(screenWidth * 0.02),
-                margin: EdgeInsets.symmetric(vertical: screenHeight * 0.013, horizontal: screenWidth * 0.04),
+                margin: EdgeInsets.symmetric(
+                  vertical: screenHeight * 0.013,
+                  horizontal: screenWidth * 0.04,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.purple[200],
+                  color: Colors.purple,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,31 +259,53 @@ class _MyRemindersState extends State<Reminders> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            AutoSizeText(
-                              '${reminder['reminder_time']} , ',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 20),
-                            ),
-                            AutoSizeText(
-                              reminder['reminder_date'],
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
-                            ),
-                          ],
+                        Expanded(
+                          child: Row(
+                            children: [
+                              AutoSizeText(
+                                '${reminder.reminderTime} , ',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                ),
+                              ),
+                              Flexible(
+                                child: AutoSizeText(
+                                  reminder.reminderDate,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.more_horiz, color: Colors.white),
+                          icon: const Icon(
+                            Icons.more_horiz,
+                            color: Colors.white,
+                          ),
                           onPressed: () => showModalBottomSheet(
                             backgroundColor: Colors.grey.shade200,
                             context: context,
-                            builder: (_) => buildRemoveModal(screenHeight, () => onRemoveReminder(index), "Remove Reminder"),
+                            builder: (_) => buildRemoveModal(
+                              screenHeight,
+                              () => onRemoveReminder(index),
+                              "Remove Reminder",
+                            ),
                           ),
                         ),
                       ],
                     ),
                     Text(
-                      'Reminder for ${reminder["remind_about"]} ${reminder["common_name"]}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      'Reminder for ${reminder.remindAbout} ${reminder.commonName}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
@@ -169,7 +319,11 @@ class _MyRemindersState extends State<Reminders> {
     );
   }
 
-  Widget buildRemoveModal(double screenHeight, VoidCallback onConfirm, String label) {
+  Widget buildRemoveModal(
+    double screenHeight,
+    VoidCallback onConfirm,
+    String label,
+  ) {
     return SizedBox(
       height: screenHeight * 0.13,
       child: Column(
@@ -177,8 +331,8 @@ class _MyRemindersState extends State<Reminders> {
           const Spacer(),
           GestureDetector(
             onTap: () {
-              onConfirm();
               Navigator.pop(context);
+              onConfirm();
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -197,7 +351,11 @@ class _MyRemindersState extends State<Reminders> {
                         shape: BoxShape.circle,
                         color: Colors.red.shade50,
                       ),
-                      child: const Icon(FontAwesomeIcons.trash, color: Colors.red, size: 20),
+                      child: const Icon(
+                        FontAwesomeIcons.trash,
+                        color: Colors.red,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Text(label, style: const TextStyle(color: Colors.red)),

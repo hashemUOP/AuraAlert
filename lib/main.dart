@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
 import 'package:aura_alert/login_signup_welcome/auth_services.dart';
 import 'package:aura_alert/gemini_api_key.dart';
+import 'package:aura_alert/navbar_pages/reminder/notification_service.dart';
 
 Future<void> main() async {
   //initialize connection between project and firebase includes all services such as firestore,auth
@@ -17,6 +18,9 @@ Future<void> main() async {
   );
 
   Gemini.init(apiKey: apiKey);
+
+  // Initialize notification service
+  await NotificationService.initialize();
 
   runApp(const MyApp());
 }

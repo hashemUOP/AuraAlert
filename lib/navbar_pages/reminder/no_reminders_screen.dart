@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:aura_alert/global_widgets/create_reminder.dart';
+import 'package:aura_alert/navbar_pages/reminder/create_reminder.dart';
 
 class NoRemindersScreen extends StatelessWidget {
   const NoRemindersScreen({super.key});

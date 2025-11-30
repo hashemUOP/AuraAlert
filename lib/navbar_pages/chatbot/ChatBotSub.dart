@@ -342,7 +342,7 @@ class _ChatBotState extends State<ChatBot> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.image, color: Colors.green.shade600),
+                    icon: Icon(Icons.image, color: Colors.purple[400]),
                     onPressed: _sendImage,
                   ),
                   Expanded(
@@ -357,7 +357,7 @@ class _ChatBotState extends State<ChatBot> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.send, color: Colors.green.shade600),
+                    icon: Icon(Icons.send, color: Colors.purple[400]),
                     onPressed: _sendText,
                   ),
                 ],
