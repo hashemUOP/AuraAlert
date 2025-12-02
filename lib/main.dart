@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:aura_alert/login_signup_welcome/screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
 import 'package:aura_alert/login_signup_welcome/auth_services.dart';
@@ -21,6 +21,11 @@ Future<void> main() async {
 
   // Initialize notification service
   await NotificationService.initialize();
+
+  //delete all shared-preferences data so if user deleted didn't finish signup setup and closed up all his entries get reset
+  //don't worry if he signed up successfully now his data is in firebase collection User's Info
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear(); // Delete all saved data on startup
 
   runApp(const MyApp());
 }

@@ -1,10 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../login/login_screen.dart';
 import 'question_4.dart';
-import  'package:aura_alert/global_widgets/custom_text.dart';
+import 'package:aura_alert/global_widgets/custom_text.dart';
 
-class Question3Screen extends StatelessWidget {
+class Question3Screen extends StatefulWidget {
   const Question3Screen({super.key});
+
+  @override
+  State<Question3Screen> createState() => _Question3ScreenState();
+}
+
+class _Question3ScreenState extends State<Question3Screen> {
+  final TextEditingController _phoneController = TextEditingController();
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _savePhoneInSharedRef() async {
+    String phone = _phoneController.text.trim();
+
+    //save the entered phone number to the shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_phone', phone);
+
+    String? phone_shared = prefs.getString('user_phone');
+    print('User phone in shared ref : $phone_shared');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +40,6 @@ class Question3Screen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
           child: Column(
             children: [
-              // --- HEADER & BACK ARROW ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -29,12 +53,10 @@ class Question3Screen extends StatelessWidget {
                     color: Colors.black54,
                     fromLeft: 0.0,
                   ),
-                  const SizedBox(width: 48), // To balance the IconButton
+                  const SizedBox(width: 48),
                 ],
               ),
               const SizedBox(height: 30),
-
-              // --- TITLE ---
               const Align(
                 alignment: Alignment.centerLeft,
                 child: CustomText(
@@ -46,8 +68,6 @@ class Question3Screen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 30),
-
-              // --- PHONE INPUT WIDGET ---
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 decoration: BoxDecoration(
@@ -56,36 +76,29 @@ class Question3Screen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    // --- FAKE COUNTRY PICKER ---
                     Container(
                       padding: const EdgeInsets.all(8.0),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      // IMPORTANT: Make sure you have 'flag.png' in assets/images/
                       child: Image.asset('assets/images/flag.png', width: 30),
                     ),
                     const SizedBox(width: 10),
-
-                    // Vertical Divider
                     Container(
                       height: 30,
                       width: 1,
                       color: Colors.grey[300],
                     ),
                     const SizedBox(width: 10),
-
-                    // --- PHONE NUMBER TEXT FIELD ---
                     Expanded(
                       child: TextField(
-                        // This brings up the numeric keyboard
+                        controller: _phoneController, // <-- Add controller
                         keyboardType: TextInputType.phone,
                         style: const TextStyle(color: Colors.black, fontSize: 16),
                         decoration: InputDecoration(
                           hintText: 'Phone Number (Optional)',
                           hintStyle: TextStyle(color: Colors.grey[400]),
-                          // Remove the default border
                           border: InputBorder.none,
                         ),
                       ),
@@ -93,12 +106,10 @@ class Question3Screen extends StatelessWidget {
                   ],
                 ),
               ),
-
-              const Spacer(), // Pushes content below to the bottom
-
-              // --- CONTINUE BUTTON ---
+              const Spacer(),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  await _savePhoneInSharedRef(); // <-- Save phone if entered
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const Question4Screen()),
@@ -120,8 +131,6 @@ class Question3Screen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // --- LOG IN LINK ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -133,7 +142,6 @@ class Question3Screen extends StatelessWidget {
                   ),
                   GestureDetector(
                     onTap: () {
-                      // Pop all routes until the welcome screen and then push login
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(builder: (context) => const LoginScreen()),
                             (Route<dynamic> route) => route.isFirst,

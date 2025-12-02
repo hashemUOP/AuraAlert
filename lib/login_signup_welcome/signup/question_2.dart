@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../login/login_screen.dart';
 import 'question_3.dart';
 import 'package:aura_alert/global_widgets/custom_text.dart';
@@ -39,7 +41,8 @@ class _Question2ScreenState extends State<Question2Screen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: const Text(
             "Account Exists",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -49,14 +52,14 @@ class _Question2ScreenState extends State<Question2Screen> {
             style: TextStyle(fontSize: 16),
           ),
           actions: [
-            // Button to just close the pop-up and stay on the page
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Closes the dialog
+                Navigator.of(context).pop();
               },
               child: const Text(
                 "OK",
-                style: TextStyle(color: Color(0xFF8e44ad), fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Color(0xFF8e44ad), fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -65,54 +68,14 @@ class _Question2ScreenState extends State<Question2Screen> {
     );
   }
 
-  Future<void> _checkEmailAndContinue() async {
-    // 1. Normalize to lowercase to ensure accurate matching
-    final email = _emailController.text.trim().toLowerCase();
+  Future<bool> emailExistsInFirestore(String email) async {
+    final query = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email.toLowerCase().trim())
+        .limit(1)
+        .get();
 
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      // 2. Check Firestore
-      final QuerySnapshot result = await FirebaseFirestore.instance
-          .collection('users')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-
-      // 3. Logic Check
-      if (result.docs.isNotEmpty) {
-        // --- EMAIL EXISTS ---
-        if (!mounted) return;
-
-        // Stop loading
-        setState(() {
-          isLoading = false;
-        });
-
-        // Show the Pop-up Dialog instead of SnackBar
-        _showAccountExistsDialog();
-
-      } else {
-        // --- EMAIL IS NEW ---
-        if (!mounted) return;
-        // Don't stop loading here to prevent button flickering before navigation
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const Question3Screen()),
-        ).then((_) {
-          // Reset loading if user backs out of next screen
-          if (mounted) setState(() => isLoading = false);
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error checking email: $e')),
-      );
-    }
+    return query.docs.isNotEmpty; // Returns TRUE if account already exists
   }
 
   @override
@@ -167,8 +130,8 @@ class _Question2ScreenState extends State<Question2Screen> {
                   hintStyle: TextStyle(color: Colors.grey[400]),
                   filled: true,
                   fillColor: Colors.grey[100],
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 18, horizontal: 20),
+                  contentPadding:
+                  const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -236,8 +199,36 @@ class _Question2ScreenState extends State<Question2Screen> {
 
               // --- CONTINUE BUTTON ---
               ElevatedButton(
-                onPressed: (_isEmailValid && !isLoading)
-                    ? _checkEmailAndContinue
+                onPressed: _isEmailValid && !isLoading
+                    ? () async {
+                  setState(() => isLoading = true);
+
+                  bool exists = await emailExistsInFirestore(_emailController.text);
+
+                  setState(() => isLoading = false);
+
+                  if (exists) {
+                    _showAccountExistsDialog();
+                  } else {
+                    //////////////////////////////SharedPreferences///////////////////////////////////////
+                    // Save email to SharedPreferences
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('user_email', _emailController.text.trim());
+
+                    //print the saved data/////////////////////////////
+                    String? email = prefs.getString('user_email');
+                    print("User entered email : $email");
+                    ////////////////////////////////////////////////////////////////////////////////////////
+
+                    // Navigate to the next screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const Question3Screen(),
+                      ),
+                    );
+                  }
+                }
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF8e44ad),
@@ -249,9 +240,10 @@ class _Question2ScreenState extends State<Question2Screen> {
                 ),
                 child: isLoading
                     ? const SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2),
                 )
                     : CustomText(
                   "Continue",

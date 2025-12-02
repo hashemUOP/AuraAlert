@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'question_2.dart'; // Import the next screen
 import  'package:aura_alert/global_widgets/custom_text.dart';
 
@@ -95,15 +96,25 @@ class _Question1ScreenState extends State<Question1Screen> {
               child: ElevatedButton(
                 // The `onPressed` is null when disabled, which automatically
                 // gives it the disabled look and prevents taps.
-                onPressed: isNextButtonEnabled
-                    ? () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const Question2Screen()),
-                  );
-                }
-                    : null,
+                  onPressed: isNextButtonEnabled
+                      ? () async {
+                    await saveUserChoice(_selectedOption!);
+
+                    // load and print the saved data/////////////////////////////
+                    final prefs = await SharedPreferences.getInstance();
+                    int? choice = prefs.getInt('selectedOption');
+
+                    print("User selected option: $choice");
+                    /////////////////////////////////////////////////////////////
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const Question2Screen(),
+                      ),
+                    );
+                  }
+                      : null,
                 style: ElevatedButton.styleFrom(
                   // Change color based on whether it's enabled
                   backgroundColor: isNextButtonEnabled
@@ -117,7 +128,7 @@ class _Question1ScreenState extends State<Question1Screen> {
                   elevation: isNextButtonEnabled ? 2 : 0,
                 ),
                 child: CustomText(
-                  "Next",
+                  "Continue",
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   // Change text color to be more readable when disabled
@@ -131,6 +142,13 @@ class _Question1ScreenState extends State<Question1Screen> {
       ),
     );
   }
+
+  //function to save the users choice in shared preferences
+  Future<void> saveUserChoice(int choice) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('selectedOption', choice);
+  }
+
 
   // A helper widget to avoid repeating the button code
   Widget buildOption({required String text, required int index}) {

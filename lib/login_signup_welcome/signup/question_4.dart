@@ -1,11 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../login/login_screen.dart';
 import 'question_5.dart';
 import 'package:aura_alert/global_widgets/custom_text.dart';
 
-
-class Question4Screen extends StatelessWidget {
+class Question4Screen extends StatefulWidget {
   const Question4Screen({super.key});
+
+  @override
+  State<Question4Screen> createState() => _Question4ScreenState();
+}
+
+class _Question4ScreenState extends State<Question4Screen> {
+  final TextEditingController _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveNameInSharedRef() async {
+    String name = _nameController.text.trim();
+
+    //save the entered phone number to the shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_name', name);
+
+    String? name_shared = prefs.getString('user_name');
+    print('User name in shared ref : $name_shared');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +40,6 @@ class Question4Screen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
           child: Column(
             children: [
-              // --- HEADER & BACK ARROW ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -30,12 +53,10 @@ class Question4Screen extends StatelessWidget {
                     color: Colors.black54,
                     fromLeft: 0.0,
                   ),
-                  const SizedBox(width: 48), // To balance the IconButton
+                  const SizedBox(width: 48),
                 ],
               ),
               const SizedBox(height: 30),
-
-              // --- TITLE ---
               const Align(
                 alignment: Alignment.centerLeft,
                 child: CustomText(
@@ -47,8 +68,6 @@ class Question4Screen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 30),
-
-              // --- name INPUT WIDGET ---
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 decoration: BoxDecoration(
@@ -57,19 +76,14 @@ class Question4Screen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-
-
-
-                    // --- Name TEXT FIELD ---
                     Expanded(
                       child: TextField(
-                        // This brings up the numeric keyboard
+                        controller: _nameController, // <-- Add controller
                         keyboardType: TextInputType.text,
                         style: const TextStyle(color: Colors.black, fontSize: 16),
                         decoration: InputDecoration(
                           hintText: 'Name (Optional)',
                           hintStyle: TextStyle(color: Colors.grey[400]),
-                          // Remove the default border
                           border: InputBorder.none,
                         ),
                       ),
@@ -77,12 +91,10 @@ class Question4Screen extends StatelessWidget {
                   ],
                 ),
               ),
-
-              const Spacer(), // Pushes content below to the bottom
-
-              // --- CONTINUE BUTTON ---
+              const Spacer(),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  await _saveNameInSharedRef(); // <-- Save name if entered
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const Question5Screen()),
@@ -104,8 +116,6 @@ class Question4Screen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // --- LOG IN LINK ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -117,7 +127,6 @@ class Question4Screen extends StatelessWidget {
                   ),
                   GestureDetector(
                     onTap: () {
-                      // Pop all routes until the welcome screen and then push login
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(builder: (context) => const LoginScreen()),
                             (Route<dynamic> route) => route.isFirst,
