@@ -65,7 +65,7 @@ class _Question5ScreenState extends State<Question5Screen> {
     try {
       // Get reference to 'User's Info' collection
       CollectionReference usersCollection =
-      FirebaseFirestore.instance.collection("User's Info");
+      FirebaseFirestore.instance.collection("UsersInfo");
 
       // Create a new document with auto-generated ID
       await usersCollection.add({
