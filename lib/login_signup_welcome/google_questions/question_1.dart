@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'question_2.dart'; // Import the next screen
+import 'package:aura_alert/login_signup_welcome/google_questions/question_2.dart'; // Import the next screen
 import  'package:aura_alert/global_widgets/custom_text.dart';
 
 class Question1Screen extends StatefulWidget {
@@ -15,6 +16,21 @@ class _Question1ScreenState extends State<Question1Screen> {
   // We use `int?` (a nullable int) so it can be null when nothing is selected.
   int? _selectedOption;
 
+  // clear all shared preferences on page initial to clear all prev data if it existed
+  @override
+  void initState() {
+    super.initState();
+    _clearAllPrefs();    // <-- Clear at the start
+  }
+
+  Future<void> _clearAllPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (kDebugMode) {
+      print("SharedPreferences cleared!");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // We check if an option has been selected to enable/disable the Next button.
@@ -22,15 +38,6 @@ class _Question1ScreenState extends State<Question1Screen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // appBar: AppBar(
-      //   // The back arrow
-      //   leading: IconButton(
-      //     icon: const Icon(Icons.arrow_back, color: Colors.black),
-      //     onPressed: () => Navigator.of(context).pop(),
-      //   ),
-      //   backgroundColor: Colors.white,
-      //   elevation: 0, // Removes the shadow
-      // ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 25.0),
         child: Column(
@@ -104,7 +111,9 @@ class _Question1ScreenState extends State<Question1Screen> {
                     final prefs = await SharedPreferences.getInstance();
                     int? choice = prefs.getInt('selectedOption');
 
-                    print("User selected option: $choice");
+                    if (kDebugMode) {
+                      print("User selected option: $choice");
+                    }
                     /////////////////////////////////////////////////////////////
 
                     Navigator.push(

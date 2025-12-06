@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
+import 'package:aura_alert/login_signup_welcome/google_questions/question_1.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -27,10 +28,13 @@ class AuthService {
   /// -----------------------------
   /// GOOGLE LOGIN (WEB + MOBILE)
   /// -----------------------------
+
   Future<void> handleGoogleSignIn(BuildContext context) async {
     try {
+      UserCredential userCredential;
+
       // ------------------------------------
-      // 1️⃣ WEB LOGIN (NO google_sign_in HERE)
+      // 1️⃣ WEB LOGIN
       // ------------------------------------
       if (kIsWeb) {
         GoogleAuthProvider googleProvider = GoogleAuthProvider();
@@ -39,55 +43,64 @@ class AuthService {
           ..addScope('email')
           ..setCustomParameters({'prompt': 'select_account'});
 
-        await _auth.signInWithPopup(googleProvider);
+        userCredential = await _auth.signInWithPopup(googleProvider);
 
-        if (context.mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const MyNavBar()),
-          );
+      } else {
+        // ------------------------------------
+        // 2️⃣ MOBILE LOGIN (ANDROID / IOS)
+        // ------------------------------------
+        await initializeGoogleSignIn();
+
+        try {
+          await _googleSignIn.signOut();
+        } catch (_) {}
+
+        final GoogleSignInAccount? googleUser =
+        await _googleSignIn.authenticate();
+
+        if (googleUser == null) return;
+
+        final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+        final idToken = googleAuth.idToken;
+        if (idToken == null) {
+          throw Exception("Google sign-in missing ID Token");
         }
-        return;
+
+        final authorization = await googleUser.authorizationClient
+            .authorizationForScopes(['email']);
+
+        final credential = GoogleAuthProvider.credential(
+          idToken: idToken,
+          accessToken: authorization?.accessToken,
+        );
+
+        userCredential = await _auth.signInWithCredential(credential);
       }
 
       // ------------------------------------
-      // 2️⃣ MOBILE LOGIN (ANDROID / IOS)
+      // 3️⃣ CHECK IF NEW USER IN FIREBASE
       // ------------------------------------
-      await initializeGoogleSignIn();
+      final bool isNewUser =
+          userCredential.additionalUserInfo?.isNewUser ?? false;
 
-      try {
-        await _googleSignIn.signOut();
-      } catch (_) {}
+      if (!context.mounted) return;
 
-      final GoogleSignInAccount? googleUser =
-      await _googleSignIn.authenticate();
-
-      if (googleUser == null) return;
-
-      final GoogleSignInAuthentication googleAuth =
-      await googleUser.authentication;
-
-      final idToken = googleAuth.idToken;
-      if (idToken == null) {
-        throw Exception("Google sign-in missing ID Token");
-      }
-
-      final authorization =
-      await googleUser.authorizationClient.authorizationForScopes(['email']);
-
-      final credential = GoogleAuthProvider.credential(
-        idToken: idToken,
-        accessToken: authorization?.accessToken,
-      );
-
-      await _auth.signInWithCredential(credential);
-
-      if (context.mounted) {
+      if (isNewUser) {
+        // First time login → go to Question1
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Question1Screen()),
+        );
+      } else {
+        // Already signed up before → go to main page
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const MyNavBar()),
         );
       }
+
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -96,6 +109,80 @@ class AuthService {
       }
     }
   }
+
+  //
+  // /// -----------------------------
+  // /// GOOGLE LOGIN (WEB + MOBILE)
+  // /// -----------------------------
+  // Future<void> handleGoogleSignIn(BuildContext context) async {
+  //   try {
+  //     // ------------------------------------
+  //     // 1️⃣ WEB LOGIN (NO google_sign_in HERE)
+  //     // ------------------------------------
+  //     if (kIsWeb) {
+  //       GoogleAuthProvider googleProvider = GoogleAuthProvider();
+  //
+  //       googleProvider
+  //         ..addScope('email')
+  //         ..setCustomParameters({'prompt': 'select_account'});
+  //
+  //       await _auth.signInWithPopup(googleProvider);
+  //
+  //       if (context.mounted) {
+  //         Navigator.pushReplacement(
+  //           context,
+  //           MaterialPageRoute(builder: (_) => const MyNavBar()),
+  //         );
+  //       }
+  //       return;
+  //     }
+  //
+  //     // ------------------------------------
+  //     // 2️⃣ MOBILE LOGIN (ANDROID / IOS)
+  //     // ------------------------------------
+  //     await initializeGoogleSignIn();
+  //
+  //     try {
+  //       await _googleSignIn.signOut();
+  //     } catch (_) {}
+  //
+  //     final GoogleSignInAccount? googleUser =
+  //     await _googleSignIn.authenticate();
+  //
+  //     if (googleUser == null) return;
+  //
+  //     final GoogleSignInAuthentication googleAuth =
+  //     await googleUser.authentication;
+  //
+  //     final idToken = googleAuth.idToken;
+  //     if (idToken == null) {
+  //       throw Exception("Google sign-in missing ID Token");
+  //     }
+  //
+  //     final authorization =
+  //     await googleUser.authorizationClient.authorizationForScopes(['email']);
+  //
+  //     final credential = GoogleAuthProvider.credential(
+  //       idToken: idToken,
+  //       accessToken: authorization?.accessToken,
+  //     );
+  //
+  //     await _auth.signInWithCredential(credential);
+  //
+  //     if (context.mounted) {
+  //       Navigator.pushReplacement(
+  //         context,
+  //         MaterialPageRoute(builder: (_) => const MyNavBar()),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     if (context.mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text("Google Login Failed: $e")),
+  //       );
+  //     }
+  //   }
+  // }
 
   /// -----------------------------
   /// UNIVERSAL LOGOUT (mobile+web)
