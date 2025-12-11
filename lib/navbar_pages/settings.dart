@@ -1,5 +1,4 @@
 import 'package:aura_alert/login_signup_welcome/screens/welcome_screen.dart';
-import 'package:aura_alert/navbar_pages/navbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -99,8 +98,33 @@ Widget _infoTile({
     ),
   );
 }
+Future<bool?> getIsPatient() async {
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    final query = await FirebaseFirestore.instance
+        .collection('UsersInfo')
+        .where('email', isEqualTo: user.email)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) return null;
+
+    final data = query.docs.first.data();
+    return data['isPatient'] as bool?;
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error getting isPatient: $e');
+    }
+    return null;
+  }
+}
+
 
 class _SettingsState extends State<Settings> {
+  bool? isPatient;
+
   final AuthService _authService = AuthService();
   User? user = FirebaseAuth.instance.currentUser;
 
@@ -111,7 +135,16 @@ class _SettingsState extends State<Settings> {
   void initState() {
     super.initState();
     loadUserInfo();
+    loadUserType();
   }
+
+  Future<void> loadUserType() async {
+    final value = await getIsPatient();
+    setState(() {
+      isPatient = value;
+    });
+  }
+
 
   Future<void> loadUserInfo() async {
     final data = await getUserData();
@@ -157,18 +190,74 @@ class _SettingsState extends State<Settings> {
                   fontWeight: FontWeight.w400,
                 ),
               ),
+              isPatient  == null ?
+                const SizedBox.shrink()       // show nothing if isPatient is null
+              : isPatient == true?            //show  ColorChangingContainer
               ColorChangingContainer(
                 icon: const Icon(Iconsax.star, color: Colors.black54),
                 iconPost: const Icon(Iconsax.arrow_right_3, color: Colors.black54),
                 iconPostPadding: screenWidth * 0.423,
                 inWidget: const CustomText(
-                  'Rate app',
+                  'Caregiver List',
                   fromLeft: 10,
                   color: Colors.black54,
                   fontSize: 15,
                   fontWeight: FontWeight.w400,
                 ),
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) {
+                      return ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(15),
+                          topRight: Radius.circular(15),
+                        ),
+                        child: Container(
+                          height: screenHeight * 0.75,
+                          width: screenWidth,
+                          color: Colors.white,
+                          padding: const EdgeInsets.all(16),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: const [
+                                 
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              )
+              : // if isPatient == false show ColorChangingContainer Patient
+              ColorChangingContainer(
+                icon: const Icon(Iconsax.star, color: Colors.black54),
+                iconPost: const Icon(Iconsax.arrow_right_3, color: Colors.black54),
+                iconPostPadding: screenWidth * 0.423,
+                inWidget: const CustomText(
+                  'Patient',
+                  fromLeft: 10,
+                  color: Colors.black54,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                ),
+
+                onTap: () {
+                  showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) {
+                        return Container();
+                      }
+                  );
+                }
               ),
+
               ColorChangingContainer(
                 icon: const Icon(FontAwesomeIcons.solidCircleUser, color: Colors.black54),
                 iconPost: const Icon(Iconsax.arrow_right_3, color: Colors.black54),
@@ -353,6 +442,14 @@ class _SettingsState extends State<Settings> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _caregiverRow(){
+    return Row(
+      children: [
+
+      ],
     );
   }
 

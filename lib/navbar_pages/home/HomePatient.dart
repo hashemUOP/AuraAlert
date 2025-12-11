@@ -153,14 +153,40 @@ class _HomePagePatientState extends State<HomePagePatient> {
             ),
           ],
         ),
-        IconButton(
-          icon: Icon(
-            _isSoundPlaying ? Icons.cloudy_snowing : Icons.cloud,
-            color: const Color(0xFF8e44ad),
-            size: 30,
-          ),
-          onPressed: _toggleSound,
-        ),
+        // Group the icons together in a Row
+        // Row(
+        //   children: [
+        //     IconButton(
+        //       icon: Icon(_isSoundPlaying ? Icons.cloudy_snowing : Icons.cloud_outlined, color: const Color(0xFF8e44ad), size: 30),
+        //       onPressed: _toggleSound,
+        //     ),
+        //
+        //     // --- NEW NOTIFICATION ICON ---
+        //     // Using a Stack to show a notification badge
+        //     Stack(
+        //       children: [
+        //         IconButton(
+        //           icon: const Icon(Icons.notifications, color: Color(0xFF8e44ad), size: 30),
+        //           onPressed: _showNotificationSheet,
+        //         ),
+        //         // Show a red dot if there are pending requests
+        //         if (_joinRequests.isNotEmpty)
+        //           Positioned(
+        //             right: 8,
+        //             top: 8,
+        //             child: Container(
+        //               padding: const EdgeInsets.all(2),
+        //               decoration: BoxDecoration(
+        //                 color: Colors.red,
+        //                 borderRadius: BorderRadius.circular(6),
+        //               ),
+        //               constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
+        //             ),
+        //           ),
+        //       ],
+        //     ),
+        //   ],
+        // ),
       ],
     );
   }

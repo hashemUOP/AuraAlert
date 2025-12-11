@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:aura_alert/navbar_pages/reminders.dart';
-import 'package:aura_alert/navbar_pages/journal.dart';
+import 'package:aura_alert/navbar_pages/Learn.dart';
 import 'package:aura_alert/navbar_pages/settings.dart';
 import 'package:flutter/services.dart';
 
@@ -54,7 +54,7 @@ class _MyNavBarState extends State<MyNavBar> {
     const Home(),
     const Reminders(),
     const ChatBotMain(),
-    const Journal(),
+    const EducationPage(),
     const Settings()
   ];
 
@@ -157,7 +157,7 @@ class _MyNavBarState extends State<MyNavBar> {
                 GButton(
                   // icon: FontAwesomeIcons.notesMedical,
                   icon: Iconsax.book_1,
-                  text: 'Journal',
+                  text: 'Learn',
                 ),
                 GButton(
                   icon: Iconsax.setting_2,
