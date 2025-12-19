@@ -35,47 +35,24 @@ class _Question2ScreenState extends State<Question2Screen> {
     });
   }
 
-  // --- NEW: Helper function to show the Pop-up ---
-  void _showAccountExistsDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: const Text(
-            "Account Exists",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            "This email is already registered.\nPlease log in to your account.",
-            style: TextStyle(fontSize: 16),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text(
-                "OK",
-                style: TextStyle(
-                    color: Color(0xFF8e44ad), fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<bool> emailExistsInFirestore(String email) async {
-    final query = await FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: email.toLowerCase().trim())
-        .limit(1)
-        .get();
+    try {
+      // Standardize the input
+      final cleanEmail = email.toLowerCase().trim();
 
-    return query.docs.isNotEmpty; // Returns TRUE if account already exists
+      final AggregateQuerySnapshot query = await FirebaseFirestore.instance
+          .collection('UsersInfo')
+          .where('email', isEqualTo: cleanEmail)
+          .count()
+          .get();
+
+      // Returns TRUE if the count is greater than 0
+      return query.count! > 0;
+
+    } catch (e) {
+      print("Error checking email existence: $e");
+      return false;
+    }
   }
 
   @override
@@ -203,12 +180,23 @@ class _Question2ScreenState extends State<Question2Screen> {
                     ? () async {
                   setState(() => isLoading = true);
 
+                  // Check Firebase
                   bool exists = await emailExistsInFirestore(_emailController.text);
+
+                  // Ensure widget is still on screen before using context
+                  if (!mounted) return;
 
                   setState(() => isLoading = false);
 
                   if (exists) {
-                    _showAccountExistsDialog();
+                    // --- SHOW SNACKBAR & STAY ON PAGE ---
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("This email is already registered."),
+                        backgroundColor: Colors.redAccent, // Red for error/warning
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
                   } else {
                     //////////////////////////////SharedPreferences///////////////////////////////////////
                     // Save email to SharedPreferences
@@ -221,6 +209,7 @@ class _Question2ScreenState extends State<Question2Screen> {
                     ////////////////////////////////////////////////////////////////////////////////////////
 
                     // Navigate to the next screen
+                    if (!mounted) return;
                     Navigator.push(
                       context,
                       MaterialPageRoute(

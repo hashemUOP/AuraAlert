@@ -66,7 +66,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
         ),
         child: const Center(
           child: CustomText(
-            'Patient Dashboard',
+            'Caregiver Dashboard',
             fontSize: 22,
             fontWeight: FontWeight.bold,
             color: Colors.white,

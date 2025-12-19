@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../global_widgets/custom_text.dart';
+import 'HomeCareGiver.dart';
 
 enum EEGStatus {
   noFile,
@@ -46,17 +47,38 @@ class HomePagePatient extends StatefulWidget {
 }
 
 class _HomePagePatientState extends State<HomePagePatient> {
+  // keep your existing implementation (renamed to match button call)
+  void _uploadEEGFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result != null) {
+      if (mounted) setState(() => _currentEEGStatus = EEGStatus.processing);
+
+      await Future.delayed(const Duration(seconds: 5));
+      bool seizureWasDetected = DateTime.now().second % 2 == 0;
+
+      if (mounted) {
+        setState(() {
+          _currentEEGStatus =
+          seizureWasDetected ? EEGStatus.seizureDetected : EEGStatus.noSeizure;
+        });
+      }
+    } else {
+      if (kDebugMode) print("File picking was canceled.");
+    }
+  }
+
+  PatientStatus _currentStatus = PatientStatus.stable;
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isSoundPlaying = false;
   EEGStatus _currentEEGStatus = EEGStatus.noFile;
-
   String? userName = "User"; // Default until loaded
 
   @override
   void initState() {
     super.initState();
     _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    loadUserName(); // Load Firestore name safely
+    loadUserName();
   }
 
   Future<void> loadUserName() async {
@@ -74,121 +96,184 @@ class _HomePagePatientState extends State<HomePagePatient> {
     super.dispose();
   }
 
-  // --- Logic Functions ---
   void _toggleSound() async {
     if (_isSoundPlaying) {
       await _audioPlayer.stop();
     } else {
+      // If this is an asset, use AssetSource('audio/rain.mp3') instead of UrlSource
       await _audioPlayer.play(UrlSource('audio/rain.mp3'));
     }
-    setState(() {
-      _isSoundPlaying = !_isSoundPlaying;
-    });
-  }
-
-  void _uploadEEGFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-    if (result != null) {
+    if (mounted) {
       setState(() {
-        _currentEEGStatus = EEGStatus.processing;
+        _isSoundPlaying = !_isSoundPlaying;
       });
-
-      await Future.delayed(const Duration(seconds: 5));
-
-      bool seizureWasDetected = DateTime.now().second % 2 == 0;
-
-      setState(() {
-        _currentEEGStatus = seizureWasDetected
-            ? EEGStatus.seizureDetected
-            : EEGStatus.noSeizure;
-      });
-    } else {
-      if (kDebugMode) {
-        print("File picking was canceled.");
-      }
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const Spacer(flex: 2),
-              _buildEEGSection(),
-              const Spacer(flex: 3),
-              _buildMedicationCard(),
-            ],
-          ),
+        child: Column(
+          children: [
+            // 1. The Header stays fixed at the top
+            _buildHeader(),
+
+            // 2. WRAP THIS IN EXPANDED
+            // This forces the scroll view to take only the remaining space
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 16),
+                        _buildHeader2(),
+                        const SizedBox(height: 24),
+                        _buildStatusCard(),
+                        const SizedBox(height: 24),
+                        _buildLastAnalysisCard(),
+                        const SizedBox(height: 24),
+                        _buildEEGSection(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // --- UI Builder Widgets ---
-  Widget _buildHeader() {
+  // --- UI builder methods unchanged except minor spacing fixes ---
+  Widget _buildLastAnalysisCard() {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.grey.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const CustomText('Last Analysis Summary',
+                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0),
+            const SizedBox(height: 16),
+            _buildInfoRow('Time of last analysis:', '11:45 AM, Today'),
+            const Divider(height: 24),
+            _buildInfoRow('Result:', 'Stable'),
+            const Divider(height: 24),
+            _buildInfoRow('Confidence:', '98.5%'),
+            const Divider(height: 24),
+            _buildInfoRow('AI detected:', 'Normal brainwave patterns'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        CustomText(label, fontSize: 15, color: Colors.grey[600], fromLeft: 0),
+        CustomText(value,
+            fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black, fromLeft: 0),
+      ],
+    );
+  }
+
+  Widget _buildStatusCard() {
+    IconData icon;
+    Color cardColor;
+    String title;
+    String subtitle;
+    switch (_currentStatus) {
+      case PatientStatus.stable:
+        icon = Icons.check_circle;
+        cardColor = Colors.green.shade500;
+        title = 'No Seizure Detected';
+        subtitle = 'Patient is Stable';
+        break;
+      case PatientStatus.warning:
+        icon = Icons.warning;
+        cardColor = Colors.orange.shade500;
+        title = 'Warning: Possible Seizure Detected';
+        subtitle = 'AI analysis indicates a risk.';
+        break;
+      case PatientStatus.alert:
+        icon = Icons.dangerous;
+        cardColor = Colors.red.shade600;
+        title = 'ALERT ACTIVE';
+        subtitle = 'Last alert was 3 minutes ago';
+        break;
+    }
+    return Card(
+      elevation: 0,
+      color: cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Row(
           children: [
-            CustomText(
-              'Welcome Back, $userName',
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-              fromLeft: 0,
-            ),
-            const CustomText(
-              'Stay calm and safe.',
-              fontSize: 16,
-              color: Colors.black54,
-              fromLeft: 0,
+            Icon(icon, color: Colors.white, size: 48),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                CustomText(title,
+                    fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, fromLeft: 0),
+                const SizedBox(height: 4),
+                CustomText(subtitle, fontSize: 16, color: Colors.white70, fromLeft: 0),
+              ]),
             ),
           ],
         ),
-        // Group the icons together in a Row
-        // Row(
-        //   children: [
-        //     IconButton(
-        //       icon: Icon(_isSoundPlaying ? Icons.cloudy_snowing : Icons.cloud_outlined, color: const Color(0xFF8e44ad), size: 30),
-        //       onPressed: _toggleSound,
-        //     ),
-        //
-        //     // --- NEW NOTIFICATION ICON ---
-        //     // Using a Stack to show a notification badge
-        //     Stack(
-        //       children: [
-        //         IconButton(
-        //           icon: const Icon(Icons.notifications, color: Color(0xFF8e44ad), size: 30),
-        //           onPressed: _showNotificationSheet,
-        //         ),
-        //         // Show a red dot if there are pending requests
-        //         if (_joinRequests.isNotEmpty)
-        //           Positioned(
-        //             right: 8,
-        //             top: 8,
-        //             child: Container(
-        //               padding: const EdgeInsets.all(2),
-        //               decoration: BoxDecoration(
-        //                 color: Colors.red,
-        //                 borderRadius: BorderRadius.circular(6),
-        //               ),
-        //               constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
-        //             ),
-        //           ),
-        //       ],
-        //     ),
-        //   ],
-        // ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return ClipPath(
+      clipper: CurveClipper(), // This applies our custom curve shape
+      child: Container(
+        padding: const EdgeInsets.only(top: 50, bottom: 40),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF8e44ad), Color(0xFFa569bd)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: const Center(
+          child: CustomText(
+            'Patient Dashboard',
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fromLeft: 0,
+          ),
+        ),
+      ),
+    );
+  }
+  Widget _buildHeader2() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          CustomText('Welcome Back, $userName',
+              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0),
+          const CustomText('Stay calm and safe.',
+              fontSize: 16, color: Colors.black54, fromLeft: 0),
+        ]),
       ],
     );
   }
@@ -200,19 +285,12 @@ class _HomePagePatientState extends State<HomePagePatient> {
           ElevatedButton.icon(
             onPressed: ()async =>await pickAndUploadFile(),
             icon: const Icon(Icons.upload_file, color: Colors.white),
-            label: const CustomText(
-              'Upload EEG Data',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              fromLeft: 0,
-            ),
+            label: const CustomText('Upload EEG Data',
+                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, fromLeft: 0),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF8e44ad),
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 20),
@@ -237,17 +315,9 @@ class _HomePagePatientState extends State<HomePagePatient> {
         return const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 3)),
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 3)),
             SizedBox(width: 10),
-            CustomText(
-              'Processing EEG data...',
-              fontSize: 16,
-              color: Colors.blue,
-              fromLeft: 0,
-            ),
+            CustomText('Processing EEG data...', fontSize: 16, color: Colors.blue, fromLeft: 0),
           ],
         );
       case EEGStatus.seizureDetected:
@@ -269,41 +339,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
         const SizedBox(width: 8),
         CustomText(text, fontSize: 16, color: color, fromLeft: 0),
       ],
-    );
-  }
-
-  Widget _buildMedicationCard() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0E6F6),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.medication, color: Color(0xFF8e44ad), size: 40),
-          const SizedBox(width: 16),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CustomText(
-                'Next Reminder: Keppra',
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-                fromLeft: 0,
-              ),
-              SizedBox(height: 4),
-              CustomText(
-                'Dosage: 500mg  |  Time: 9:00 PM',
-                fontSize: 14,
-                color: Colors.black54,
-                fromLeft: 0,
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }
