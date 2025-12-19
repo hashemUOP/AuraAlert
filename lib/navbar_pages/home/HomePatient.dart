@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:aura_alert/REST%20API/flutter_edf_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -33,6 +34,7 @@ Future<String?> getUserName() async {
   } catch (e) {
     print("Error fetching username: $e");
     return null;
+
   }
 }
 
@@ -196,7 +198,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
       child: Column(
         children: [
           ElevatedButton.icon(
-            onPressed: _uploadEEGFile,
+            onPressed: ()async =>await pickAndUploadFile(),
             icon: const Icon(Icons.upload_file, color: Colors.white),
             label: const CustomText(
               'Upload EEG Data',

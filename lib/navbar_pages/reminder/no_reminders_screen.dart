@@ -24,7 +24,7 @@ class NoRemindersScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            "Add your first plant and carry out\n your daily plant care routines.",
+            "Add your first reminder.",
             style: TextStyle(fontWeight: FontWeight.w100, fontSize: 14,color: Colors.grey.shade600),
             textAlign: TextAlign.center, // Centers the multi-line text
           ),

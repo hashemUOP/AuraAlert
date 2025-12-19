@@ -3,55 +3,111 @@ import '../global_widgets/custom_text.dart';
 import 'package:aura_alert/navbar_pages/learn/emergency_guide_page.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+// import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:aura_alert/navbar_pages/learn/article_page.dart';
 
-// --- Data Model for a Learning Topic ---
+// --- 1. Data Model ---
 class LearnTopic {
   final String title;
   final IconData icon;
   final Color color;
+  final String imagePath;
+  final String content;
 
   const LearnTopic({
     required this.title,
     required this.icon,
     required this.color,
+    required this.imagePath,
+    required this.content,
   });
 }
 
-// --- Our Simulated Database ---
+// --- 2. Database with EXPANDED Content ---
 final List<LearnTopic> learnTopics = [
   LearnTopic(
     title: 'What is Epilepsy?',
     icon: Icons.psychology_outlined,
     color: Colors.blue,
+    imagePath: 'images/learn/epilepsy_intro.jpg',
+    content: 'Epilepsy is a chronic disorder, the hallmark of which is recurrent, unprovoked seizures. A person is diagnosed with epilepsy if they have two unprovoked seizures (or one unprovoked seizure with the likelihood of more) that were not caused by some known and reversible medical condition like alcohol withdrawal or extremely low blood sugar.\n\n'
+        'The seizures in epilepsy may be related to a brain injury or a family tendency, but often the cause is completely unknown. The word "epilepsy" does not indicate anything about the cause of the person’s seizures or their severity.\n\n'
+        'Many people with epilepsy have more than one type of seizure and may have other symptoms of neurological problems as well. Sometimes EEG (electroencephalogram) testing, clinical history, family history, and outlook are similar among a group of people with epilepsy. In these situations, their condition can be defined as a specific epilepsy syndrome.\n\n'
+        'Epilepsy is the fourth most common neurological disorder and affects people of all ages. It means the same thing as "seizure disorders." It is characterized by unpredictable seizures and can cause other health problems. However, the majority of people with epilepsy live full, active, and productive lives.',
   ),
   LearnTopic(
     title: 'Types of Seizures',
     icon: Icons.dashboard_customize_outlined,
     color: Colors.orange,
+    imagePath: 'images/learn/seizure_types.webp',
+    content: 'Seizures are classified into two broad categories based on where they start in the brain: Focal seizures and Generalized seizures.\n\n'
+        '1. FOCAL SEIZURES:\n'
+        'These seizures start in one area or group of cells in one side of the brain.\n'
+        '- Focal Onset Aware Seizures: When a person is awake and aware during a seizure. They may know what is happening but feel frozen. This was previously called a "simple partial seizure."\n'
+        '- Focal Onset Impaired Awareness: When a person is confused or their awareness is affected in some way during a focal seizure. This was previously called a "complex partial seizure."\n\n'
+        '2. GENERALIZED SEIZURES:\n'
+        'These affect both sides of the brain or groups of cells on both sides of the brain at the same time.\n'
+        '- Absence Seizures: Also known as "petit mal," these cause a short period of "blanking out" or staring into space.\n'
+        '- Tonic-Clonic Seizures: Also known as "grand mal," these are what most people think of when they hear the word "seizure." They involve loss of consciousness, body stiffening (tonic), and shaking (clonic).\n'
+        '- Atonic Seizures: Muscles suddenly lose strength. The eyelids may droop, the head may nod, and the person may drop things or fall to the ground.',
   ),
   LearnTopic(
     title: 'Medication Guide',
     icon: Icons.medication_outlined,
     color: Colors.green,
+    imagePath: 'images/learn/medication.jpg',
+    content: 'Anti-seizure medication (ASM) is the most common way to treat epilepsy. About 7 out of 10 people with epilepsy can control their seizures with medication alone.\n\n'
+        'KEY RULES FOR MEDICATION:\n'
+        '1. Consistency is Key: Take your medicine exactly as prescribed. Missing doses can cause your seizures to come back or become more intense.\n\n'
+        '2. Do Not Stop Suddenly: Never stop taking your medication without consulting your doctor. Stopping suddenly can trigger a dangerous condition called "status epilepticus" (continuous seizures).\n\n'
+        '3. Watch for Side Effects: Common side effects can include fatigue, dizziness, or mood changes. If side effects are severe, talk to your doctor—do not just quit the drug. There may be a different medication that works better for you.\n\n'
+        '4. Interactions: Be careful with other substances. Alcohol, certain herbal supplements, and other prescription drugs can interact with seizure medications, making them less effective or increasing side effects.',
   ),
   LearnTopic(
     title: 'Danger Signs',
     icon: Icons.warning_amber_rounded,
     color: Colors.red,
+    imagePath: 'images/learn/danger_signs.jpg',
+    content: 'Most seizures end on their own and do not require emergency medical attention. However, there are specific situations where you MUST call 911 or your local emergency number immediately:\n\n'
+        'CALL AN AMBULANCE IF:\n'
+        '- The seizure lasts longer than 5 minutes.\n'
+        '- The person has another seizure soon after the first one, without regaining consciousness in between.\n'
+        '- Consciousness does not return after the shaking has stopped.\n'
+        '- The person is injured during the seizure (e.g., a fall or cut).\n'
+        '- The seizure happens in water (swimming pool or bathtub).\n'
+        '- The person is pregnant or has diabetes.\n'
+        '- The person has difficulty breathing after the seizure.\n\n'
+        'Status Epilepticus: A seizure that lasts longer than 5 minutes is a medical emergency. It can lead to permanent brain damage or death if not treated immediately with rescue medication.',
   ),
   LearnTopic(
     title: 'Myths & Facts',
     icon: Icons.question_answer_outlined,
     color: Colors.teal,
+    imagePath: 'images/learn/myths.png',
+    content: 'Epilepsy is often misunderstood. Clearing up these myths is essential for proper first aid and reducing stigma.\n\n'
+        'MYTH: You can swallow your tongue during a seizure.\n'
+        'FACT: It is physically impossible to swallow your tongue. You should NEVER put anything in a person\'s mouth during a seizure. Doing so can break their teeth or injure your fingers.\n\n'
+        'MYTH: You should restrain someone having a seizure.\n'
+        'FACT: Never hold someone down. This can cause bone fractures or muscle injuries. Instead, protect them by moving dangerous objects away and placing something soft under their head.\n\n'
+        'MYTH: Epilepsy is contagious.\n'
+        'FACT: You cannot catch epilepsy from another person. It is not an infection.\n\n'
+        'MYTH: All people with epilepsy are sensitive to flashing lights.\n'
+        'FACT: Photosensitive epilepsy affects only about 3% of people with epilepsy. For most, flashing lights do not trigger seizures.',
   ),
   LearnTopic(
     title: 'After Seizure Care',
     icon: Icons.healing_outlined,
     color: Colors.indigo,
+    imagePath: 'images/learn/recovery.jpg',
+    content: 'The time immediately following a seizure is called the "post-ictal" phase. This recovery period can last from minutes to hours. The person may be confused, tired, embarrassed, or have a headache.\n\n'
+        'STEPS FOR CARE:\n'
+        '1. Check for Injuries: Look for cuts or bruises that may have happened during the fall.\n\n'
+        '2. Recovery Position: If they are not fully awake, gently roll them onto their side. This keeps their airway clear and prevents choking on saliva or vomit.\n\n'
+        '3. Stay With Them: Do not leave the person alone until they are fully alert and aware of their surroundings. Talk to them in a calm, reassuring voice.\n\n'
+        '4. No Food or Water: Do not offer them anything to eat or drink until they are fully awake and able to swallow safely.\n\n'
+        '5. Let Them Rest: Seizures consume a massive amount of energy. The person will likely want to sleep. Let them rest in a safe place.',
   ),
 ];
 
@@ -87,7 +143,6 @@ class EducationPage extends StatelessWidget {
     );
   }
 
-  /// Builds the purple, curved header at the top of the screen.
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.only(top: 60, bottom: 30, left: 16, right: 16),
@@ -117,7 +172,6 @@ class EducationPage extends StatelessWidget {
     );
   }
 
-  /// Builds the prominent emergency guide card.
   Widget _buildEmergencyCard() {
     return Builder(
       builder: (context) {
@@ -179,7 +233,6 @@ class EducationPage extends StatelessWidget {
     );
   }
 
-  /// Builds the grid of learning topics.
   Widget _buildLearnGrid() {
     return GridView.builder(
       shrinkWrap: true,
@@ -198,7 +251,6 @@ class EducationPage extends StatelessWidget {
     );
   }
 
-  /// Builds a single card for the learning grid.
   Widget _buildTopicCard(LearnTopic topic) {
     return Builder(
       builder: (context) {
@@ -209,31 +261,18 @@ class EducationPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           child: InkWell(
-            // --- MODIFIED ONTAP FUNCTION ---
             onTap: () {
-              // In a real application, you would make an API call here to get
-              // the imageUrl and content from your database based on the topic.title.
-              // For now, we will use placeholder data to demonstrate the navigation.
-
-              // Example placeholder data:
-              String imageUrl =
-                  'https://images.unsplash.com/photo-1579154204601-01588f351e67?fit=crop&w=800&q=80';
-              String content =
-                  'This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.This is the detailed content for the article titled "${topic.title}". In a real app, this text would be much longer and would be fetched from your database based on the topic you selected. This reusable page allows you to display any article with a consistent and beautiful design.';
-
-              // Navigate to the reusable ArticlePage and pass the data to it.
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => ArticlePage(
                     title: topic.title,
-                    imageUrl: imageUrl,
-                    content: content,
+                    imagePath: topic.imagePath,
+                    content: topic.content,
                   ),
                 ),
               );
             },
-            // --- END OF MODIFICATION ---
             borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -259,34 +298,27 @@ class EducationPage extends StatelessWidget {
     );
   }
 
-  /// Builds the download card at the bottom.
   Widget _buildDownloadCard() {
     return Card(
       elevation: 0,
       color: const Color(0xFFF0E6F6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
-        // This is the corrected, modern implementation for mobile
         onTap: () async {
           try {
-            // 1. Load the image from your assets using the CORRECT PATH
             final byteData = await rootBundle.load(
               'images/Seizure-First-Aid-Poster.png',
             );
 
-            // 2. Get a temporary directory. This is always safe to write to.
             final tempDir = await getTemporaryDirectory();
             final path = '${tempDir.path}/Seizure-First-Aid-Poster.png';
 
-            // 3. Write the asset data to the temporary file
             final file = File(path);
             await file.writeAsBytes(byteData.buffer.asUint8List());
 
-            // 4. Use share_plus to open the native share dialog
             await Share.shareXFiles(
               [XFile(path)],
-              text:
-              'Here is the Epilepsy First Aid card from my AuraAlert app.',
+              text: 'Here is the Epilepsy First Aid card from my AuraAlert app.',
             );
           } catch (e) {
             print('Error sharing image: $e');
