@@ -125,24 +125,21 @@ class _HomePagePatientState extends State<HomePagePatient> {
             // 2. WRAP THIS IN EXPANDED
             // This forces the scroll view to take only the remaining space
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 16),
-                        _buildHeader2(),
-                        const SizedBox(height: 24),
-                        _buildStatusCard(),
-                        const SizedBox(height: 24),
-                        _buildLastAnalysisCard(),
-                        const SizedBox(height: 24),
-                        _buildEEGSection(),
-                      ],
-                    ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 16),
+                      _buildHeader2(),
+                      const SizedBox(height: 24),
+                      _buildStatusCard(),
+                      const SizedBox(height: 24),
+                      _buildLastAnalysisCard(),
+                      const SizedBox(height: 24),
+                      _buildEEGSection(),
+                    ],
                   ),
                 ),
               ),
@@ -184,9 +181,18 @@ class _HomePagePatientState extends State<HomePagePatient> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        CustomText(label, fontSize: 15, color: Colors.grey[600], fromLeft: 0),
-        CustomText(value,
-            fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black, fromLeft: 0),
+        // Wrap the first text if it might get long
+        Flexible(
+          flex: 1,
+          child: CustomText(label, fontSize: 15, color: Colors.grey[600], fromLeft: 0),
+        ),
+        const SizedBox(width: 10), // Add a little spacing between them
+        // Wrap the second text so it pushes to the left or wraps
+        Flexible(
+          flex: 2, // Give the value slightly more space priority
+          child: CustomText(value,
+              fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black, fromLeft: 0),
+        ),
       ],
     );
   }

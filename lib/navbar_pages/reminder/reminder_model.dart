@@ -7,6 +7,7 @@ class ReminderModel {
   final String reminderTime;
   final String commonName;
   final String remindAbout;
+  String? email;
 
   ReminderModel({
     required this.reminderId,
@@ -14,6 +15,7 @@ class ReminderModel {
     required this.reminderTime,
     required this.commonName,
     required this.remindAbout,
+    required this.email,
   });
 
   Map<String, dynamic> toJson() {
@@ -23,6 +25,7 @@ class ReminderModel {
       'reminder_time': reminderTime,
       'common_name': commonName,
       'remind_about': remindAbout,
+      'email': email,
     };
   }
 
@@ -33,6 +36,7 @@ class ReminderModel {
       reminderTime: json['reminder_time'],
       commonName: json['common_name'],
       remindAbout: json['remind_about'],
+      email: json['email']
     );
   }
 

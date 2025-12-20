@@ -5,6 +5,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:aura_alert/navbar_pages/reminder/reminder_model.dart';
 import 'package:aura_alert/navbar_pages/reminder/storage_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CreateReminder extends StatefulWidget {
   const CreateReminder({super.key});
@@ -14,15 +15,32 @@ class CreateReminder extends StatefulWidget {
 }
 
 class _CreateReminderState extends State<CreateReminder> {
+
   // Updated method to save reminder to SharedPreferences only
   Future<void> saveReminder() async {
+    // 1. Get the current user
+    final User? user = FirebaseAuth.instance.currentUser;
+
+    // 2. CHECK: If user is null, show error and STOP.
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You must be logged in to set a reminder.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return; // Stop execution here
+    }
+
+    // 3. If user exists, proceed with saving
     try {
-      // Generate unique primary key
       int timestamp = DateTime.now().millisecondsSinceEpoch;
       int randomNum = Random().nextInt(9999);
       String pk = '$randomNum-$timestamp';
 
-      // Create ReminderModel
       ReminderModel reminder = ReminderModel(
         reminderId: pk,
         reminderDate: DateFormat('MMM dd, yyyy').format(selectedDate),
@@ -30,9 +48,9 @@ class _CreateReminderState extends State<CreateReminder> {
         '${selectedTime.hourOfPeriod == 0 ? 12 : selectedTime.hourOfPeriod}:${selectedTime.minute.toString().padLeft(2, '0')} ${selectedTime.period == DayPeriod.am ? 'AM' : 'PM'}',
         commonName: '$repeatEveryPick2 $repeatEveryPick',
         remindAbout: selectedRemindAbout,
+        email: user.email, // Safe to use because we checked for null above
       );
 
-      // Save to SharedPreferences
       await StorageService.addReminder(reminder);
 
       if (mounted) {

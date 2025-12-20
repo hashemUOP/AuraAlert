@@ -1,4 +1,6 @@
 import 'package:aura_alert/login_signup_welcome/screens/welcome_screen.dart';
+import 'package:aura_alert/navbar_pages/settings/caregiver_list.dart';
+import 'package:aura_alert/navbar_pages/settings/patient_list.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -221,11 +223,7 @@ class _SettingsState extends State<Settings> {
                           color: Colors.white,
                           padding: const EdgeInsets.all(16),
                           child: SingleChildScrollView(
-                            child: Column(
-                              children: const [
-                                 
-                              ],
-                            ),
+                            child: PatientList()
                           ),
                         ),
                       );
@@ -252,7 +250,7 @@ class _SettingsState extends State<Settings> {
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
                       builder: (context) {
-                        return Container();
+                        return CaregiverList();
                       }
                   );
                 }
