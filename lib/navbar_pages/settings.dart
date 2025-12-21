@@ -238,7 +238,7 @@ class _SettingsState extends State<Settings> {
                 iconPost: const Icon(Iconsax.arrow_right_3, color: Colors.black54),
                 iconPostPadding: screenWidth * 0.423,
                 inWidget: const CustomText(
-                  'Patient',
+                  'Patient Management',
                   fromLeft: 10,
                   color: Colors.black54,
                   fontSize: 15,
@@ -247,14 +247,28 @@ class _SettingsState extends State<Settings> {
 
                 onTap: () {
                   showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) {
-                        return CaregiverList();
-                      }
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) {
+                      return ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(15),
+                          topRight: Radius.circular(15),
+                        ),
+                        child: Container(
+                          height: screenHeight * 0.75,
+                          width: screenWidth,
+                          color: Colors.white,
+                          padding: const EdgeInsets.all(16),
+                          child: SingleChildScrollView(
+                              child: CaregiverList()
+                          ),
+                        ),
+                      );
+                    },
                   );
-                }
+                },
               ),
 
               ColorChangingContainer(
@@ -443,14 +457,6 @@ class _SettingsState extends State<Settings> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _caregiverRow(){
-    return Row(
-      children: [
-
-      ],
     );
   }
 
