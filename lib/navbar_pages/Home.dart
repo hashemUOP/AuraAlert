@@ -1,8 +1,5 @@
 import 'package:aura_alert/navbar_pages/home/HomeCareGiver.dart';
 import 'package:aura_alert/navbar_pages/home/HomePatient.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
@@ -25,7 +22,7 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> loadUserType() async {
-    // 1. Try to read from Local Storage first (It's faster)
+    // 1. try to reading from Local Storage first for faster results
     final prefs = await SharedPreferences.getInstance();
     bool? localStatus = prefs.getBool('isPatient');
 
@@ -37,13 +34,13 @@ class _HomeState extends State<Home> {
         });
       }
     } else {
-      // 2. If local storage is empty, fetch from Firebase
+      // 2. if local storage is empty, fetch from Firebase
       // getIsPatient is defined in main
       bool? firebaseStatus = await getIsPatient();
 
       if (mounted) {
         setState(() {
-          // If firebase returns null (error), default to false or handle error
+          // if firebase returns null (error), default to false or handle error
           isPatient = firebaseStatus ?? false;
         });
       }
@@ -53,14 +50,13 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    // Show loading while we figure out who the user is
+    // show loading while until user state is figured out
     if (isPatient == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    // Render the correct page
     return isPatient! ? const HomePagePatient() : const HomePageCaregiver();
   }
 }
