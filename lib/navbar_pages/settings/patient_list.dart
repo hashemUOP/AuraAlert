@@ -140,7 +140,7 @@ class _PatientListState extends State<PatientList> {
               String userEmail = data['email'] ?? 'No Email';
 
               // Using your existing _requestRow function to display the result
-              return _requestRow(userEmail, screenWidth);
+              return _searchRow(userEmail, screenWidth);
             }).toList(),
           ),
         );
@@ -252,4 +252,69 @@ Widget _caregiversRow(String email, screenWidth) {
       ),
     ),
   );
+}
+
+Widget _searchRow(String email, screenWidth) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Container(
+      height: 70,
+      width: screenWidth * 0.99,
+      padding: EdgeInsets.symmetric(horizontal: 15,),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        color: Colors.grey.shade100,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.person,
+                color: Colors.purple,
+                size: 34.0,
+              ),
+              SizedBox(width: 20),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CustomText(email, fromLeft: 0, fontSize: 20),
+                  CustomText("Caregiver", fromLeft: 0, fontSize: 11),
+                ],
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: ()=>print("hashem"),
+            child: Icon(
+              Icons.add,
+              color: Colors.pink,
+              size: 30.0,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
+Future<void> addPendingRequest({
+  required String senderEmail,
+  required String receiverEmail,
+}) async {
+  try {
+    await FirebaseFirestore.instance
+        .collection('PendingRequests')
+        .add({
+      'Date': Timestamp.now(),
+      'Sender': senderEmail,
+      'Receiver': receiverEmail,
+      'Type': 'From Patient To Caregiver',
+      'isSenderPatient': true,
+    });
+  } catch (e) {
+    throw Exception('Failed to add pending request: $e');
+  }
 }

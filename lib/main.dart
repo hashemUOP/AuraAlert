@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:aura_alert/login_signup_welcome/screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -11,21 +13,14 @@ import 'package:aura_alert/gemini_api_key.dart';
 import 'package:aura_alert/navbar_pages/reminder/notification_service.dart';
 
 Future<void> main() async {
-  //initialize connection between project and firebase includes all services such as firestore,auth
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
   Gemini.init(apiKey: apiKey);
-
-  // Initialize notification service
   await NotificationService.initialize();
-
-  //delete all shared-preferences data so if user deleted didn't finish signup setup and closed up all his entries get reset
-  //don't worry if he signed up successfully now his data is in firebase collection User's Info
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.clear(); // Delete all saved data on startup
+  await _deleteSharedData();
 
   runApp(const MyApp());
 }
@@ -33,61 +28,165 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp( // Added const
       debugShowCheckedModeBanner: false,
       title: 'Medicine App',
-      theme: ThemeData(
-        fontFamily: "BungeeSpice",
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(fontSize: 14),
-          titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-        ),
-      ),
-
-      home: MyHomePage(),
+      home: AuthGate(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  late AuthService _authService;
-
-  @override
-  void initState() {
-    super.initState();
-    _authService = AuthService();
-
-    // Listen to auth state changes
-    _authService.userChanges.listen((User? user) { //check settings.dart line 76, when user is signed out user variable User? user becomes null
-      if (user != null) {
-        // if user has an account in firebase auth whether he is signed by phone , google , or any other way is signed in, navigate to MyNavBar
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MyNavBar()),
-        );
-      } else {
-        // User is signed out, navigate to Login
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-        );
-      }
-    });
-  }//this is make sure if user is signed in with google account to be transferred to Home everytime he opens app , and if not he will be transferred to Login page
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Show a loading indicator while checking auth state
-    return  Scaffold(
-      body: Center(child: CircularProgressIndicator(color: Colors.green.shade500,)),
+    return StreamBuilder<User?>(
+      stream: AuthService().userChanges,
+      builder: (context, snapshot) {
+        // 1. Waiting for Firebase Auth to check if user is logged in
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator(color: Colors.green)),
+          );
+        }
+
+        // 2. User IS logged in
+        if (snapshot.hasData) {
+          // 3. NOW wait for _readSharedData to finish before showing MyNavBar
+          return FutureBuilder(
+            future: _readSharedData(), // read users shared data before navigating him to MyNavBar page if he was logged in
+            builder: (context, dataSnapshot) {
+              // While fetching name from Firestore...
+              if (dataSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator(color: Colors.blue)), // Different color to distinguish steps
+                );
+              }
+
+              // Done fetching! Navigate to App
+              return const MyNavBar();
+            },
+          );
+        }
+
+        // 4. User is NOT logged in
+        return const WelcomeScreen();
+      },
     );
+  }
+}
+
+// --- Helper Functions ---
+
+Future<void> _deleteSharedData() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('selectedOption');
+  await prefs.remove('user_email');
+  await prefs.remove('user_phone');
+  await prefs.remove('user_name');
+
+  if (kDebugMode) {
+    print("All signup shared pref data has been cleared.");
+  }
+}
+
+// Future<void> _createSharedData() async{
+//
+// }
+
+Future<void> _readSharedData() async{
+  //////////////////////////////////////////////////////////////////////////////////
+                          ///read user first name
+  //////////////////////////////////////////////////////////////////////////////////
+  final User? currentUser = FirebaseAuth.instance.currentUser;
+
+  if (currentUser != null) {
+    try {
+      // fetch user name
+      final query = await FirebaseFirestore.instance
+          .collection('UsersInfo')
+          .where('email', isEqualTo: currentUser.email)
+          .limit(1)
+          .get();
+
+      // check if document exists for user
+      if (query.docs.isNotEmpty) {
+        final data = query.docs.first.data();
+
+        String firstName = data['name'] ?? data['firstName'] ?? '';
+
+        // save name to SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_name', firstName);
+
+        if (kDebugMode) {
+          print("Success: Saved '$firstName' to local storage.");
+        }
+      } else {
+        if (kDebugMode) {
+          print("Error: No user document found for this email.");
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error fetching data: $e");
+      }
+    }
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////
+                      /// End of read user first name
+  //////////////////////////////////////////////////////////////////////////////////
+
+
+  //////////////////////////////////////////////////////////////////////////////////
+                ///read user state is patient or caregiver
+  //////////////////////////////////////////////////////////////////////////////////
+
+  bool? isPatient = await getIsPatient();
+
+  // if we successfully got a value from getIsPatient then it will be stored in shared pref var
+  if (isPatient != null) {
+    final prefs = await SharedPreferences.getInstance();
+
+    // save as a boolean
+    await prefs.setBool('isPatient', isPatient);
+
+    if (kDebugMode) {
+      print("Success: Saved isPatient = $isPatient to SharedPreferences");
+    }
+  } else {
+    if (kDebugMode) {
+      print("Warning: Could not fetch isPatient status (returned null).");
+    }
+  }
+  //////////////////////////////////////////////////////////////////////////////////
+              ///end of read user state is patient or caregiver
+  //////////////////////////////////////////////////////////////////////////////////
+}
+
+Future<bool?> getIsPatient() async {
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    final query = await FirebaseFirestore.instance
+        .collection('UsersInfo')
+        .where('email', isEqualTo: user.email)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) return null;
+
+    final data = query.docs.first.data();
+    return data['isPatient'] as bool?;
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error getting isPatient: $e');
+    }
+    return null;
   }
 }

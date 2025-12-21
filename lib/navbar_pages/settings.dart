@@ -12,6 +12,9 @@ import 'package:aura_alert/global_widgets/custom_text.dart';
 import 'package:aura_alert/login_signup_welcome/auth_services.dart';
 import 'package:aura_alert/global_widgets/color_changing_container.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../main.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -100,28 +103,6 @@ Widget _infoTile({
     ),
   );
 }
-Future<bool?> getIsPatient() async {
-  try {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-
-    final query = await FirebaseFirestore.instance
-        .collection('UsersInfo')
-        .where('email', isEqualTo: user.email)
-        .limit(1)
-        .get();
-
-    if (query.docs.isEmpty) return null;
-
-    final data = query.docs.first.data();
-    return data['isPatient'] as bool?;
-  } catch (e) {
-    if (kDebugMode) {
-      print('Error getting isPatient: $e');
-    }
-    return null;
-  }
-}
 
 
 class _SettingsState extends State<Settings> {
@@ -130,6 +111,32 @@ class _SettingsState extends State<Settings> {
   final AuthService _authService = AuthService();
   User? user = FirebaseAuth.instance.currentUser;
 
+
+  Future<void> loadUserType() async {
+    // 1. Try to read from Local Storage first (It's faster)
+    final prefs = await SharedPreferences.getInstance();
+    bool? localStatus = prefs.getBool('isPatient');
+
+    if (localStatus != null) {
+      // If we found it locally, use it immediately
+      if (mounted) {
+        setState(() {
+          isPatient = localStatus;
+        });
+      }
+    } else {
+      // 2. If local storage is empty, fetch from Firebase
+      // getIsPatient is defined in main
+      bool? firebaseStatus = await getIsPatient();
+
+      if (mounted) {
+        setState(() {
+          // If firebase returns null (error), default to false or handle error
+          isPatient = firebaseStatus ?? false;
+        });
+      }
+    }
+  }
 
   Map<String, dynamic>? userData;
 
@@ -140,12 +147,6 @@ class _SettingsState extends State<Settings> {
     loadUserType();
   }
 
-  Future<void> loadUserType() async {
-    final value = await getIsPatient();
-    setState(() {
-      isPatient = value;
-    });
-  }
 
 
   Future<void> loadUserInfo() async {
@@ -413,6 +414,7 @@ class _SettingsState extends State<Settings> {
                       SnackBar(content: Text('Error signing out: $e')),
                     );
                   }
+                  await _deleteSharedData();
                 },
                 icon: const Icon(Iconsax.logout, color: Colors.black54),
                 inWidget: const CustomText(
@@ -427,6 +429,7 @@ class _SettingsState extends State<Settings> {
               AnimatedButton(
                 onTap: () async {
                   await _authService.deleteUser(context);
+                  await _deleteSharedData();
                 },
                 buttonColor: Colors.white,
                 text: 'Delete my account',
@@ -481,5 +484,14 @@ class _SettingsState extends State<Settings> {
   }
 }
 
+Future<void> _deleteSharedData()async {
+  final prefs = await SharedPreferences.getInstance();
 
+  await prefs.remove('user_name');
+  await prefs.remove('isPatient');
+
+  if (kDebugMode) {
+    print("All shared pref data has been cleared.");
+  }
+}
 

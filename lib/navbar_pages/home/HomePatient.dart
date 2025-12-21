@@ -1,43 +1,12 @@
 import 'dart:async';
 import 'package:aura_alert/REST%20API/flutter_edf_parser.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../global_widgets/custom_text.dart';
 import 'HomeCareGiver.dart';
 
-enum EEGStatus {
-  noFile,
-  processing,
-  seizureDetected,
-  noSeizure,
-}
 
-/// 🔥 Fetch the signed-in user's name from Firestore (UsersInfo collection)
-Future<String?> getUserName() async {
-  try {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-
-    final query = await FirebaseFirestore.instance
-        .collection('UsersInfo')
-        .where('email', isEqualTo: user.email)
-        .limit(1)
-        .get();
-
-    if (query.docs.isEmpty) return null;
-
-    final data = query.docs.first.data();
-    return data['name'] as String?;
-  } catch (e) {
-    print("Error fetching username: $e");
-    return null;
-
-  }
-}
 
 class HomePagePatient extends StatefulWidget {
   const HomePagePatient({super.key});
@@ -47,47 +16,26 @@ class HomePagePatient extends StatefulWidget {
 }
 
 class _HomePagePatientState extends State<HomePagePatient> {
-  // keep your existing implementation (renamed to match button call)
-  void _uploadEEGFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
 
-    if (result != null) {
-      if (mounted) setState(() => _currentEEGStatus = EEGStatus.processing);
-
-      await Future.delayed(const Duration(seconds: 5));
-      bool seizureWasDetected = DateTime.now().second % 2 == 0;
-
-      if (mounted) {
-        setState(() {
-          _currentEEGStatus =
-          seizureWasDetected ? EEGStatus.seizureDetected : EEGStatus.noSeizure;
-        });
-      }
-    } else {
-      if (kDebugMode) print("File picking was canceled.");
-    }
-  }
+  String userName = "User";//nullable default name
 
   PatientStatus _currentStatus = PatientStatus.stable;
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isSoundPlaying = false;
-  EEGStatus _currentEEGStatus = EEGStatus.noFile;
-  String? userName = "User"; // Default until loaded
 
   @override
   void initState() {
     super.initState();
     _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    loadUserName();
+    _loadUserName();
   }
 
-  Future<void> loadUserName() async {
-    final name = await getUserName();
-    if (mounted) {
-      setState(() {
-        userName = name ?? "User";
-      });
-    }
+  /// Reads the 'user_name' from SharedPreferences that is initialized in main.dart
+  Future<void> _loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userName = prefs.getString('user_name') ?? "User";
+    });
   }
 
   @override
@@ -300,51 +248,8 @@ class _HomePagePatientState extends State<HomePagePatient> {
             ),
           ),
           const SizedBox(height: 20),
-          _buildStatusWidget(),
         ],
       ),
-    );
-  }
-
-  Widget _buildStatusWidget() {
-    IconData icon;
-    String text;
-    Color color;
-
-    switch (_currentEEGStatus) {
-      case EEGStatus.noFile:
-        icon = Icons.info_outline;
-        text = 'No file has been uploaded yet.';
-        color = Colors.grey;
-        break;
-      case EEGStatus.processing:
-        return const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 3)),
-            SizedBox(width: 10),
-            CustomText('Processing EEG data...', fontSize: 16, color: Colors.blue, fromLeft: 0),
-          ],
-        );
-      case EEGStatus.seizureDetected:
-        icon = Icons.warning_amber_rounded;
-        text = 'Processing complete. Seizure detected.';
-        color = Colors.red;
-        break;
-      case EEGStatus.noSeizure:
-        icon = Icons.check_circle_outline_rounded;
-        text = 'Processing complete. No seizure activity found.';
-        color = Colors.green;
-        break;
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 8),
-        CustomText(text, fontSize: 16, color: color, fromLeft: 0),
-      ],
     );
   }
 }
