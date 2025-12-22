@@ -1,12 +1,17 @@
 import 'dart:async';
-import 'package:aura_alert/REST%20API/flutter_edf_parser.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+
+// Assuming these exist in your project
 import '../../global_widgets/custom_text.dart';
 import 'HomeCareGiver.dart';
-
-
 
 class HomePagePatient extends StatefulWidget {
   const HomePagePatient({super.key});
@@ -16,26 +21,48 @@ class HomePagePatient extends StatefulWidget {
 }
 
 class _HomePagePatientState extends State<HomePagePatient> {
-
-  String userName = "User";//nullable default name
-
+  String userName = "User";
+  String? patientEmail;
   PatientStatus _currentStatus = PatientStatus.stable;
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isSoundPlaying = false;
+
+  // To update the red dot on notification icon
+  List<String> _pendingRequestsList = [];
 
   @override
   void initState() {
     super.initState();
     _audioPlayer.setReleaseMode(ReleaseMode.loop);
     _loadUserName();
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      patientEmail = user.email;
+      if (kDebugMode) {
+        print("Current User Email initialized: $patientEmail");
+      }
+      // Initial fetch to set the notification dot
+      _refreshPendingRequests();
+    }
   }
 
-  /// Reads the 'user_name' from SharedPreferences that is initialized in main.dart
   Future<void> _loadUserName() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       userName = prefs.getString('user_name') ?? "User";
     });
+  }
+
+  Future<void> _refreshPendingRequests() async {
+    if (patientEmail != null) {
+      final reqs = await _getPendingRequests(patientEmail!);
+      if (mounted) {
+        setState(() {
+          _pendingRequestsList = reqs;
+        });
+      }
+    }
   }
 
   @override
@@ -48,7 +75,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
     if (_isSoundPlaying) {
       await _audioPlayer.stop();
     } else {
-      // If this is an asset, use AssetSource('audio/rain.mp3') instead of UrlSource
       await _audioPlayer.play(UrlSource('audio/rain.mp3'));
     }
     if (mounted) {
@@ -58,7 +84,52 @@ class _HomePagePatientState extends State<HomePagePatient> {
     }
   }
 
+  // --- UPLOAD LOGIC ---
+  Future<void> pickAndUploadFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['edf'],
+      withData: true,
+    );
 
+    if (result == null) return;
+
+    final file = result.files.single;
+    final bytes = file.bytes;
+    final filename = file.name;
+
+    // Show loading indicator
+    if(!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Uploading...")));
+
+    try {
+      final uri = Uri.parse('http://127.0.0.1:8000/api/data/predict/');
+      final request = http.MultipartRequest('POST', uri)
+        ..files.add(http.MultipartFile.fromBytes(
+          'file',
+          bytes!,
+          filename: filename,
+          contentType: MediaType('application', 'octet-stream'),
+        ));
+      request.headers['Accept'] = 'application/json';
+
+      final streamed = await request.send();
+      final resp = await http.Response.fromStream(streamed);
+
+      if (kDebugMode) {
+        print('Status: ${resp.statusCode}');
+        print('Body: ${resp.body}');
+      }
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Finished: ${resp.statusCode}")));
+      }
+    } catch(e) {
+      if (kDebugMode) print(e);
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,11 +138,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
       body: SafeArea(
         child: Column(
           children: [
-            // 1. The Header stays fixed at the top
             _buildHeader(),
-
-            // 2. WRAP THIS IN EXPANDED
-            // This forces the scroll view to take only the remaining space
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -80,7 +147,8 @@ class _HomePagePatientState extends State<HomePagePatient> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 16),
-                      _buildHeader2(),
+                      // Pass the actual list of requests to show/hide red dot
+                      _buildHeader2(_pendingRequestsList),
                       const SizedBox(height: 24),
                       _buildStatusCard(),
                       const SizedBox(height: 24),
@@ -98,7 +166,269 @@ class _HomePagePatientState extends State<HomePagePatient> {
     );
   }
 
-  // --- UI builder methods unchanged except minor spacing fixes ---
+  Widget _buildHeader() {
+    return ClipPath(
+      clipper: CurveClipper(),
+      child: Container(
+        padding: const EdgeInsets.only(top: 50, bottom: 40),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF8e44ad), Color(0xFFa569bd)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: const Center(
+          child: CustomText(
+            'Patient Dashboard',
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fromLeft: 0,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader2(List<String> requests) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          CustomText('Welcome Back, $userName',
+              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0),
+          const CustomText('Stay calm and safe.',
+              fontSize: 16, color: Colors.black54, fromLeft: 0),
+        ]),
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(_isSoundPlaying ? Icons.cloudy_snowing : Icons.cloud_outlined,
+                  color: const Color(0xFF8e44ad), size: 30),
+              onPressed: _toggleSound,
+            ),
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications, color: Color(0xFF8e44ad), size: 30),
+                  onPressed: () {
+                    // Refresh data before showing dialog
+                    _refreshPendingRequests().then((_) {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return StatefulBuilder( // Use StatefulBuilder to update dialog state
+                              builder: (context, setState) {
+                                return AlertDialog(
+                                  title: const Text("Notifications"),
+                                  content: _notificationDialogueBody(context, setState),
+                                  actions: [
+                                    TextButton(
+                                      child: const Text("Close"),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        // Refresh main screen state when closing dialog
+                                        _refreshPendingRequests();
+                                      },
+                                    ),
+                                  ],
+                                );
+                              }
+                          );
+                        },
+                      );
+                    });
+                  },
+                ),
+                if (requests.isNotEmpty)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _notificationDialogueBody(BuildContext context, StateSetter setState) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Important for dialogs
+        children: [
+          Align(
+            alignment: AlignmentGeometry.topLeft,
+            child: CustomText("Pending Requests:", fromLeft: 0, fontSize: 18),
+          ),
+          const SizedBox(height: 20),
+
+          FutureBuilder<List<String>>(
+            future: _getPendingRequests(patientEmail!),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return const Center(child: Text("Error loading requests"));
+              }
+              final caregivers = snapshot.data ?? [];
+              if (caregivers.isEmpty) {
+                return const Center(child: Text("No pending requests."));
+              }
+
+              return Column(
+                children: caregivers.map((email) {
+                  // PASS THE SPECIFIC CAREGIVER EMAIL HERE
+                  return _requestRow(email, screenWidth, setState);
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Updated to accept setState to refresh the dialog
+  Widget _requestRow(String caregiverEmail, double screenWidth, StateSetter setState) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Container(
+        height: 70,
+        width: screenWidth * 0.99,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          color: Colors.grey.shade100,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.person, color: Colors.purple, size: 34.0),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 100, // Limit width so email doesn't overflow
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(caregiverEmail, style: const TextStyle(fontSize: 14), overflow: TextOverflow.ellipsis,),
+                      const CustomText("Caregiver", fromLeft: 0, fontSize: 11),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.red, size: 30),
+                  onPressed: () async {
+                    await _rejectPendingRequest(patientEmail!, caregiverEmail);
+                    setState(() {}); // Refresh the dialog UI
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.check, color: Colors.purple, size: 30),
+                  onPressed: () async {
+                    await _acceptPendingRequest(patientEmail!, caregiverEmail);
+                    setState(() {}); // Refresh the dialog UI
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- DATA LOGIC ---
+
+  Future<List<String>> _getPendingRequests(String patientEmail) async {
+    try {
+      // FIX: Query where Receiver is ME (the patient)
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('PendingRequests')
+          .where('Receiver', isEqualTo: patientEmail)
+          .get();
+
+      final senderEmails = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return data['Sender'] as String? ?? '';
+      }).where((email) => email.isNotEmpty).toList();
+
+      return senderEmails;
+    } catch (e) {
+      if (kDebugMode) print("Error getting requests: $e");
+      return [];
+    }
+  }
+
+  Future<void> _rejectPendingRequest(String patientEmail, String caregiverEmail) async {
+    try {
+      // FIX: Match BOTH Receiver and Sender to delete specific request
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('PendingRequests')
+          .where('Receiver', isEqualTo: patientEmail)
+          .where('Sender', isEqualTo: caregiverEmail)
+          .get();
+
+      for (var doc in querySnapshot.docs) {
+        await doc.reference.delete();
+      }
+      if (kDebugMode) print("Request rejected.");
+    } catch (e) {
+      if (kDebugMode) print("Error rejecting request: $e");
+    }
+  }
+
+  Future<void> _acceptPendingRequest(String patientEmail, String caregiverEmail) async {
+    final firestore = FirebaseFirestore.instance;
+    try {
+      final friendshipQuery = await firestore
+          .collection('Friendship')
+          .where('Patient', isEqualTo: patientEmail)
+          .limit(1)
+          .get();
+
+      if (friendshipQuery.docs.isNotEmpty) {
+        final docRef = friendshipQuery.docs.first.reference;
+        await docRef.update({
+          'Caregivers': FieldValue.arrayUnion([caregiverEmail])
+        });
+      } else {
+        await firestore.collection('Friendship').add({
+          'Patient': patientEmail,
+          'Caregivers': [caregiverEmail],
+        });
+      }
+
+      // Delete the request after accepting
+      await _rejectPendingRequest(patientEmail, caregiverEmail);
+
+      if (kDebugMode) print("Request accepted.");
+    } catch (e) {
+      if (kDebugMode) print("Error accepting request: $e");
+    }
+  }
+
+  // --- UNCHANGED WIDGETS ---
+
   Widget _buildLastAnalysisCard() {
     return Card(
       elevation: 2,
@@ -129,15 +459,13 @@ class _HomePagePatientState extends State<HomePagePatient> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Wrap the first text if it might get long
         Flexible(
           flex: 1,
           child: CustomText(label, fontSize: 15, color: Colors.grey[600], fromLeft: 0),
         ),
-        const SizedBox(width: 10), // Add a little spacing between them
-        // Wrap the second text so it pushes to the left or wraps
+        const SizedBox(width: 10),
         Flexible(
-          flex: 2, // Give the value slightly more space priority
+          flex: 2,
           child: CustomText(value,
               fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black, fromLeft: 0),
         ),
@@ -194,50 +522,12 @@ class _HomePagePatientState extends State<HomePagePatient> {
     );
   }
 
-  Widget _buildHeader() {
-    return ClipPath(
-      clipper: CurveClipper(), // This applies our custom curve shape
-      child: Container(
-        padding: const EdgeInsets.only(top: 50, bottom: 40),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF8e44ad), Color(0xFFa569bd)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: const Center(
-          child: CustomText(
-            'Patient Dashboard',
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fromLeft: 0,
-          ),
-        ),
-      ),
-    );
-  }
-  Widget _buildHeader2() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText('Welcome Back, $userName',
-              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0),
-          const CustomText('Stay calm and safe.',
-              fontSize: 16, color: Colors.black54, fromLeft: 0),
-        ]),
-      ],
-    );
-  }
-
   Widget _buildEEGSection() {
     return Center(
       child: Column(
         children: [
           ElevatedButton.icon(
-            onPressed: ()async =>await pickAndUploadFile(),
+            onPressed: () async => await pickAndUploadFile(),
             icon: const Icon(Icons.upload_file, color: Colors.white),
             label: const CustomText('Upload EEG Data',
                 fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, fromLeft: 0),
@@ -252,4 +542,22 @@ class _HomePagePatientState extends State<HomePagePatient> {
       ),
     );
   }
+}
+
+class CurveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 30);
+    path.quadraticBezierTo(
+        size.width / 4, size.height, size.width / 2, size.height);
+    path.quadraticBezierTo(
+        size.width * 3 / 4, size.height, size.width, size.height - 30);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

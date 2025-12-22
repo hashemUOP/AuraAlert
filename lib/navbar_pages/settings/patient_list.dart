@@ -183,110 +183,86 @@ class _PatientListState extends State<PatientList> {
 
   // --- FIRESTORE QUERY FUNCTION ---
   Widget _buildSearchResults(double screenWidth) {
+    // 1. First Stream: Listen to Friendship to know who to HIDE
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('UsersInfo')
-          .where('isPatient', isEqualTo: false)
-      // This creates a "starts with" query for the email field
-          .where('email', isGreaterThanOrEqualTo: _searchQuery)
-          .where('email', isLessThan: _searchQuery + 'z')
+          .collection('Friendship')
+          .where('Patient', isEqualTo: patientEmail)
           .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          if (kDebugMode) {
-            print("Error: ${snapshot.error}");
+      builder: (context, friendshipSnapshot) {
+
+        // Get the list of emails to hide (Current Caregivers)
+        List<String> existingCaregivers = [];
+        if (friendshipSnapshot.hasData && friendshipSnapshot.data!.docs.isNotEmpty) {
+          final data = friendshipSnapshot.data!.docs.first.data() as Map<String, dynamic>;
+          if (data.containsKey('Caregivers') && data['Caregivers'] != null) {
+            existingCaregivers = List<String>.from(data['Caregivers']);
           }
         }
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        // 2. Second Stream: Perform the Search
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('UsersInfo')
+              .where('isPatient', isEqualTo: false)
+              .where('email', isGreaterThanOrEqualTo: _searchQuery)
+              .where('email', isLessThan: _searchQuery + 'z')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text("No user found with that email."),
-          );
-        }
-
-        // Render the list of found users
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          color: Colors.grey.withOpacity(0.05),
-          child: Column(
-            children: snapshot.data!.docs.map((DocumentSnapshot document) {
-              Map<String, dynamic> data = document.data()! as Map<
-                  String,
-                  dynamic>;
-              String userEmail = data['email'] ?? 'No Email';
-
-              return _searchRow(
-                userEmail: userEmail,
-                patientEmail: patientEmail!,
-                screenWidth: screenWidth,
-                context: context,
-                // --- CLEANUP LOGIC ---
-                onSuccess: () {
-                  // 1. Clear the text controller
-                  _searchController.clear();
-
-                  // 2. Update state to hide results
-                  setState(() {
-                    _searchQuery = "";
-                  });
-
-                  // 3. Close the keyboard
-                  FocusScope.of(context).unfocus();
-                },
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text("No user found."),
               );
-            }).toList(),
-          ),
+            }
+
+            // 3. FILTERING: Remove users who are already caregivers
+            final filteredDocs = snapshot.data!.docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final email = data['email'];
+              // Only keep if NOT in existing list
+              return !existingCaregivers.contains(email);
+            }).toList();
+
+            if (filteredDocs.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text("User is already added."),
+              );
+            }
+
+            // 4. Render the remaining results
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              color: Colors.grey.withOpacity(0.05),
+              child: Column(
+                children: filteredDocs.map((DocumentSnapshot document) {
+                  Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+                  String userEmail = data['email'] ?? 'No Email';
+
+                  return _searchRow(
+                    userEmail: userEmail,
+                    patientEmail: patientEmail!,
+                    screenWidth: screenWidth,
+                    context: context,
+                    onSuccess: () {
+                      _searchController.clear();
+                      setState(() { _searchQuery = ""; });
+                      FocusScope.of(context).unfocus();
+                    },
+                  );
+                }).toList(),
+              ),
+            );
+          },
         );
       },
     );
   }
-
-// Widget _requestRow(String email, screenWidth) {
-//   return Padding(
-//     padding: const EdgeInsets.symmetric(vertical: 5),
-//     child: Container(
-//       height: 70,
-//       width: screenWidth * 0.99,
-//       padding: EdgeInsets.symmetric(horizontal: 15),
-//       decoration: BoxDecoration(
-//         borderRadius: BorderRadius.circular(15),
-//         color: Colors.grey.shade100,
-//       ),
-//       child: Row(
-//         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//         children: [
-//           Row(
-//             children: [
-//               Icon(
-//                 Icons.person,
-//                 color: Colors.purple,
-//                 size: 34.0,
-//               ),
-//               SizedBox(width: 20),
-//               Column(
-//                 mainAxisAlignment: MainAxisAlignment.center,
-//                 children: [
-//                   CustomText(email, fromLeft: 0, fontSize: 20),
-//                   CustomText("Caregiver", fromLeft: 0, fontSize: 11),
-//                 ],
-//               ),
-//             ],
-//           ),
-//           Icon(
-//             Icons.close,
-//             color: Colors.pink,
-//             size: 30.0,
-//           ),
-//         ],
-//       ),
-//     ),
-//   );
-// }
 
   Widget _caregiversRow({
     required String caregiverEmail,
@@ -454,7 +430,8 @@ class _PatientListState extends State<PatientList> {
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(e.toString().replaceAll("Exception: ", "")),
+                          content: Text(
+                              e.toString().replaceAll("Exception: ", "")),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -506,47 +483,44 @@ class _PatientListState extends State<PatientList> {
     }
   }
 
-  Future<void> _removeCaregiver(BuildContext context, String careGiverEmail,
-      String patientEmail) async {
+  Future<void> _removeCaregiver(BuildContext context, String careGiverEmail, String patientEmail) async {
     try {
-      // 1. Query the collection to find the document where 'Patient' matches patientEmail
+      // A. Remove from Friendship Collection
       final querySnapshot = await FirebaseFirestore.instance
           .collection('Friendship')
           .where('Patient', isEqualTo: patientEmail)
-          .limit(1) // Limit to 1 since we expect a unique relationship doc
+          .limit(1)
           .get();
 
-      // 2. Check if the document exists
       if (querySnapshot.docs.isNotEmpty) {
-        // Get the reference of the found document
         final docRef = querySnapshot.docs.first.reference;
-
-        // 3. Atomically remove the specific email from the 'Caregivers' array
         await docRef.update({
           'Caregivers': FieldValue.arrayRemove([careGiverEmail])
         });
 
-        //Success Snackbar
+        // --- THE FIX: ALSO DELETE THE PENDING REQUEST ---
+        // We search for the request that caused this "Pending" status and delete it.
+        final pendingQuery = await FirebaseFirestore.instance
+            .collection('PendingRequests')
+            .where('Sender', isEqualTo: patientEmail)
+            .where('Receiver', isEqualTo: careGiverEmail)
+            .get();
+
+        for (var doc in pendingQuery.docs) {
+          await doc.reference.delete();
+        }
+        // ------------------------------------------------
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Caregiver removed successfully'),
             backgroundColor: Colors.purple,
           ),
         );
-      } else {
-        // no patient found snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: No patient found')),
-        );
       }
     } catch (e) {
-      //error Snackbar
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error removing caregiver: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -581,26 +555,4 @@ class _PatientListState extends State<PatientList> {
       return []; // Return empty list on error to handle gracefully
     }
   }
-
-// Future<List<String>> _getPendingRequests(String patientEmail) async {
-//   try {
-//     // 1. Query 'PendingRequests' where the SENDER is the current user
-//     final querySnapshot = await FirebaseFirestore.instance
-//         .collection('PendingRequests')
-//         .where('Sender', isEqualTo: patientEmail)
-//         .get();
-//
-//     // 2. Extract the 'Receiver' emails from the found documents
-//     final receiverEmails = querySnapshot.docs.map((doc) {
-//       final data = doc.data();
-//       return data['Receiver'] as String? ?? '';
-//     }).where((email) => email.isNotEmpty).toList();
-//
-//     return receiverEmails;
-//
-//   } catch (e) {
-//     print("Error getting sent requests: $e");
-//     return [];
-//   }
-// }
 }
