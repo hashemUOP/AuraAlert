@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -12,15 +13,25 @@ import 'HomeCareGiver.dart';
 
 class HomePagePatient extends StatefulWidget {
   final String userName;
-  const HomePagePatient({super.key,required this.userName});
+  const HomePagePatient({super.key, required this.userName});
 
   @override
   State<HomePagePatient> createState() => _HomePagePatientState();
 }
 
 class _HomePagePatientState extends State<HomePagePatient> {
+  //show loading bool for EDF send,receive
+  bool uploadingLoading = false;
+  bool isSuccess = false;
 
+  //define variables for the last test results
+  String? aiDetected;
+  String? analysisTime;
+  String? confidence;
+  String? result;
   String? patientEmail;
+  bool? seizureAlert;
+
   PatientStatus _currentStatus = PatientStatus.stable;
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isSoundPlaying = false;
@@ -40,8 +51,11 @@ class _HomePagePatientState extends State<HomePagePatient> {
       if (kDebugMode) {
         print("Current User Email initialized: $patientEmail");
       }
-      // Initial fetch to set the notification dot
+      // load the pending requests for patient
       _refreshPendingRequests();
+
+      // load last test result for patient
+      _loadPatientLastResult();
     }
   }
 
@@ -75,7 +89,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
     }
   }
 
-  // --- Uploading EDF file sending it to server via REST API ---
+  // --- uploading EDF file sending it to server via REST API ---
   Future<void> pickAndUploadFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -85,68 +99,193 @@ class _HomePagePatientState extends State<HomePagePatient> {
 
     if (result == null) return;
 
+    // Reset success state if we pick a new file
+    setState(() {
+      isSuccess = false;
+      uploadingLoading = true;
+    });
+
     final file = result.files.single;
     final bytes = file.bytes;
     final filename = file.name;
 
-    // Show loading indicator
-    if(!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Uploading...")));
-
     try {
       final uri = Uri.parse('http://127.0.0.1:8000/api/data/predict/');
       final request = http.MultipartRequest('POST', uri)
-        ..files.add(http.MultipartFile.fromBytes(
-          'file',
-          bytes!,
-          filename: filename,
-          contentType: MediaType('application', 'octet-stream'),
-        ));
+        ..files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            bytes!,
+            filename: filename,
+            contentType: MediaType('application', 'octet-stream'),
+          ),
+        );
       request.headers['Accept'] = 'application/json';
 
       final streamed = await request.send();
+
+      // Switch to processing state
+      setState(() {
+        uploadingLoading = false;
+      });
+
       final resp = await http.Response.fromStream(streamed);
+
+
+      // the resp body must be converted for it's to be accessed
+      final Map<String, dynamic> responseData = jsonDecode(resp.body);
+
+      if (mounted) {
+        setState(() {
+          isSuccess = true; // response from server arrived update state
+        });
+      }
 
       if (kDebugMode) {
         print('Status: ${resp.statusCode}');
-        print('Body: ${resp.body}');
+        print('Parsed Data: $responseData');
       }
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Finished: ${resp.statusCode}")));
+
+      // ---  save test results to firebase ---
+      if (patientEmail != null) {
+        await _createOrUpdatePatientLastResult(
+          responseData['ai_detected'] ?? "Unknown",
+          responseData['analysis_time'] ?? DateTime.now().toString(),
+          responseData['confidence'].toString(),
+          responseData['result'] ?? "Unknown",
+          patientEmail!,
+          responseData['seizure_alert'] ?? false,
+        );
       }
-    } catch(e) {
-      if (kDebugMode) print(e);
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+
+      // delay 1 seconds so user can read "All done!"
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (mounted) {
+        setState(() {
+          isSuccess = false; // hide the loading box
+        });
+      }
+    } catch (e) {
+      setState(() {
+        uploadingLoading = false;
+        isSuccess = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+
+    // Helper boolean to check if we should show the overlay
+    bool showOverlay = uploadingLoading || isSuccess;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 16),
-                      // Pass the actual list of requests to show/hide red dot
-                      _buildHeader2(_pendingRequestsList),
-                      const SizedBox(height: 24),
-                      _buildStatusCard(),
-                      const SizedBox(height: 24),
-                      _buildLastAnalysisCard(),
-                      const SizedBox(height: 24),
-                      _buildEEGSection(),
-                    ],
+            // --- MAIN CONTENT ---
+            Column(
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 16),
+                          _buildHeader2(_pendingRequestsList),
+                          const SizedBox(height: 24),
+                          _buildStatusCard(),
+                          const SizedBox(height: 24),
+                          _buildLastAnalysisCard(),
+                          const SizedBox(height: 24),
+                          _buildEEGSection(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // --- BLACK DIMMER ---
+            Visibility(
+              visible: showOverlay, // <--- 4. Updated Logic
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.black.withOpacity(0.7),
+              ),
+            ),
+
+            // --- LOADING / STATUS BOX ---
+            Visibility(
+              visible: showOverlay, // <--- 4. Updated Logic
+              child: Center(
+                child: Container(
+                  width: screenWidth * 0.7,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    color: Colors.white,
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Only show spinner if we are NOT in success state
+                        if (!isSuccess) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const CircularProgressIndicator(
+                                color: Colors.purple,
+                              ),
+                              const SizedBox(width: 20),
+                              CustomText(
+                                "Just a moment...",
+                                fromLeft: 0,
+                                fontSize: 18,
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          // Show Checkmark when done
+                          const Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 50,
+                          ),
+                        ],
+
+                        const SizedBox(height: 20),
+
+                        // Text Logic
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          child: CustomText(
+                            color: Colors.purple,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w500,
+                            uploadingLoading
+                                ? "Please wait while our AI reviews your data..."
+                                : "All done! Here are your results.",
+                            fromLeft: 0,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -156,6 +295,99 @@ class _HomePagePatientState extends State<HomePagePatient> {
       ),
     );
   }
+
+  Future<void> _createOrUpdatePatientLastResult(
+      String aiDetected,
+      String analysisTime,
+      String confidence,
+      String result,
+      String patientEmail,
+      bool seizureAlert,
+      ) async {
+    try {
+      final CollectionReference collection =
+      FirebaseFirestore.instance.collection('LastAnalysis');
+
+      // 1. Check if user has previous results
+      final QuerySnapshot querySnapshot = await collection
+          .where('patient', isEqualTo: patientEmail)
+          .limit(1)
+          .get();
+
+      // Prepare the data map (analysis_time is now stored as String)
+      final Map<String, dynamic> data = {
+        'ai_detected': aiDetected,
+        'analysis_time': analysisTime,
+        'confidence': confidence,
+        'patient': patientEmail,
+        'result': result,
+        'seizure_alert': seizureAlert,
+      };
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // UPDATE existing document
+        final DocumentReference docRef = querySnapshot.docs.first.reference;
+        await docRef.update(data);
+        if (kDebugMode) print("Existing analysis record updated for $patientEmail");
+      } else {
+        // CREATE new document
+        await collection.add(data);
+        if (kDebugMode) print("New analysis record created for $patientEmail");
+      }
+
+      // 2. REFRESH UI IMMEDIATELY
+      // We update the local variables inside setState so the screen changes now.
+      if (mounted) {
+        setState(() {
+          this.aiDetected = aiDetected;
+          this.analysisTime = analysisTime;
+          this.confidence = confidence;
+          this.result = result;
+          this.seizureAlert = seizureAlert;
+
+          // update the status card logic instantly
+          if (result == "Seizure" || seizureAlert == true) {
+            _currentStatus = PatientStatus.alert;
+          } else {
+            _currentStatus = PatientStatus.stable;
+          }
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) print("Error updating LastAnalysis: $e");
+    }
+  }
+  Future<Map<String, dynamic>> _getPatientLastTestResult(String patientEmail) async {
+    // Default map with "empty" values
+    final Map<String, dynamic> defaultData = {
+      'ai_detected': '-',
+      'analysis_time': null, // Kept null so UI can check before formatting
+      'confidence': '-',
+      'result': '-',
+      'seizure_alert': false, // Boolean default
+    };
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('LastAnalysis')
+          .where('patient', isEqualTo: patientEmail)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Data found: Return the actual data from Firestore
+        return querySnapshot.docs.first.data();
+      } else {
+        // No data found: Return the default "-" map
+        return defaultData;
+      }
+    } catch (e) {
+      if (kDebugMode) print("Error fetching last result: $e");
+      // On error, return default map to prevent app crash
+      return defaultData;
+    }
+  }
+
 
   Widget _buildHeader() {
     return ClipPath(
@@ -186,46 +418,69 @@ class _HomePagePatientState extends State<HomePagePatient> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText('Welcome Back, ${widget.userName}',
-              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0),
-          const CustomText('Stay calm and safe.',
-              fontSize: 16, color: Colors.black54, fromLeft: 0),
-        ]),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CustomText(
+              'Welcome Back, ${widget.userName}',
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+              fromLeft: 0,
+            ),
+            const CustomText(
+              'Stay calm and safe.',
+              fontSize: 16,
+              color: Colors.black54,
+              fromLeft: 0,
+            ),
+          ],
+        ),
         Row(
           children: [
             IconButton(
-              icon: Icon(_isSoundPlaying ? Icons.cloudy_snowing : Icons.cloud_outlined,
-                  color: const Color(0xFF8e44ad), size: 30),
+              icon: Icon(
+                _isSoundPlaying ? Icons.cloudy_snowing : Icons.cloud_outlined,
+                color: const Color(0xFF8e44ad),
+                size: 30,
+              ),
               onPressed: _toggleSound,
             ),
             Stack(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.notifications, color: Color(0xFF8e44ad), size: 30),
+                  icon: const Icon(
+                    Icons.notifications,
+                    color: Color(0xFF8e44ad),
+                    size: 30,
+                  ),
                   onPressed: () {
                     // Refresh data before showing dialog
                     _refreshPendingRequests().then((_) {
                       showDialog(
                         context: context,
                         builder: (BuildContext context) {
-                          return StatefulBuilder( // Use StatefulBuilder to update dialog state
-                              builder: (context, setState) {
-                                return AlertDialog(
-                                  title: const Text("Notifications"),
-                                  content: _notificationDialogueBody(context, setState),
-                                  actions: [
-                                    TextButton(
-                                      child: const Text("Close"),
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                        // Refresh main screen state when closing dialog
-                                        _refreshPendingRequests();
-                                      },
-                                    ),
-                                  ],
-                                );
-                              }
+                          return StatefulBuilder(
+                            // Use StatefulBuilder to update dialog state
+                            builder: (context, setState) {
+                              return AlertDialog(
+                                title: const Text("Notifications"),
+                                content: _notificationDialogueBody(
+                                  context,
+                                  setState,
+                                ),
+                                actions: [
+                                  TextButton(
+                                    child: const Text("Close"),
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                      // Refresh main screen state when closing dialog
+                                      _refreshPendingRequests();
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
                           );
                         },
                       );
@@ -242,7 +497,10 @@ class _HomePagePatientState extends State<HomePagePatient> {
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
+                      constraints: const BoxConstraints(
+                        minWidth: 12,
+                        minHeight: 12,
+                      ),
                     ),
                   ),
               ],
@@ -293,7 +551,11 @@ class _HomePagePatientState extends State<HomePagePatient> {
   }
 
   // Updated to accept setState to refresh the dialog
-  Widget _requestRow(String caregiverEmail, double screenWidth, StateSetter setState) {
+  Widget _requestRow(
+    String caregiverEmail,
+    double screenWidth,
+    StateSetter setState,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Container(
@@ -317,7 +579,11 @@ class _HomePagePatientState extends State<HomePagePatient> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(caregiverEmail, style: const TextStyle(fontSize: 14), overflow: TextOverflow.ellipsis,),
+                      Text(
+                        caregiverEmail,
+                        style: const TextStyle(fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const CustomText("Caregiver", fromLeft: 0, fontSize: 11),
                     ],
                   ),
@@ -347,9 +613,42 @@ class _HomePagePatientState extends State<HomePagePatient> {
       ),
     );
   }
+  Future<void> _loadPatientLastResult() async {
+    if (patientEmail == null) return;
+
+    // Call the helper function to get the Map
+    final data = await _getPatientLastTestResult(patientEmail!);
+
+    if (mounted) {
+      setState(() {
+        // Update Strings (using toString() ensures safety if null)
+        aiDetected = data['ai_detected']?.toString() ?? "-";
+        confidence = data['confidence']?.toString() ?? "-";
+        result = data['result']?.toString() ?? "-";
+
+        // Update Boolean
+        seizureAlert = data['seizure_alert'] is bool
+            ? data['seizure_alert']
+            : false;
+
+        // Update DateTime (Handle Firestore Timestamp conversion)
+        if (data['analysis_time'] != null) {
+          analysisTime = data['analysis_time'];
+        } else {
+          analysisTime = null;
+        }
+
+        // OPTIONAL: Update your status card based on this result immediately
+        if (result == "Seizure" || seizureAlert == true) {
+          _currentStatus = PatientStatus.alert;
+        } else {
+          _currentStatus = PatientStatus.stable;
+        }
+      });
+    }
+  }
 
   // --- DATA LOGIC ---
-
   Future<List<String>> _getPendingRequests(String patientEmail) async {
     try {
       // FIX: Query where Receiver is ME (the patient)
@@ -358,10 +657,13 @@ class _HomePagePatientState extends State<HomePagePatient> {
           .where('Receiver', isEqualTo: patientEmail)
           .get();
 
-      final senderEmails = querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        return data['Sender'] as String? ?? '';
-      }).where((email) => email.isNotEmpty).toList();
+      final senderEmails = querySnapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            return data['Sender'] as String? ?? '';
+          })
+          .where((email) => email.isNotEmpty)
+          .toList();
 
       return senderEmails;
     } catch (e) {
@@ -370,7 +672,10 @@ class _HomePagePatientState extends State<HomePagePatient> {
     }
   }
 
-  Future<void> _rejectPendingRequest(String patientEmail, String caregiverEmail) async {
+  Future<void> _rejectPendingRequest(
+    String patientEmail,
+    String caregiverEmail,
+  ) async {
     try {
       // FIX: Match BOTH Receiver and Sender to delete specific request
       final querySnapshot = await FirebaseFirestore.instance
@@ -388,7 +693,10 @@ class _HomePagePatientState extends State<HomePagePatient> {
     }
   }
 
-  Future<void> _acceptPendingRequest(String patientEmail, String caregiverEmail) async {
+  Future<void> _acceptPendingRequest(
+    String patientEmail,
+    String caregiverEmail,
+  ) async {
     final firestore = FirebaseFirestore.instance;
     try {
       final friendshipQuery = await firestore
@@ -400,7 +708,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
       if (friendshipQuery.docs.isNotEmpty) {
         final docRef = friendshipQuery.docs.first.reference;
         await docRef.update({
-          'Caregivers': FieldValue.arrayUnion([caregiverEmail])
+          'Caregivers': FieldValue.arrayUnion([caregiverEmail]),
         });
       } else {
         await firestore.collection('Friendship').add({
@@ -430,16 +738,21 @@ class _HomePagePatientState extends State<HomePagePatient> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const CustomText('Last Analysis Summary',
-                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0),
+            const CustomText(
+              'Last Analysis Summary',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+              fromLeft: 0,
+            ),
             const SizedBox(height: 16),
-            _buildInfoRow('Time of last analysis:', '11:45 AM, Today'),
+            _buildInfoRow('Time of last analysis:', analysisTime.toString()),
             const Divider(height: 24),
-            _buildInfoRow('Result:', 'Stable'),
+            _buildInfoRow('Result:', result ??"-"),
             const Divider(height: 24),
-            _buildInfoRow('Confidence:', '98.5%'),
+            _buildInfoRow('Confidence:',confidence ?? "-"),
             const Divider(height: 24),
-            _buildInfoRow('AI detected:', 'Normal brainwave patterns'),
+            _buildInfoRow('AI detected:', aiDetected ?? "-"),
           ],
         ),
       ),
@@ -452,13 +765,23 @@ class _HomePagePatientState extends State<HomePagePatient> {
       children: [
         Flexible(
           flex: 1,
-          child: CustomText(label, fontSize: 15, color: Colors.grey[600], fromLeft: 0),
+          child: CustomText(
+            label,
+            fontSize: 15,
+            color: Colors.grey[600],
+            fromLeft: 0,
+          ),
         ),
         const SizedBox(width: 10),
         Flexible(
           flex: 2,
-          child: CustomText(value,
-              fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black, fromLeft: 0),
+          child: CustomText(
+            value,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
+            fromLeft: 0,
+          ),
         ),
       ],
     );
@@ -500,12 +823,25 @@ class _HomePagePatientState extends State<HomePagePatient> {
             Icon(icon, color: Colors.white, size: 48),
             const SizedBox(width: 16),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                CustomText(title,
-                    fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, fromLeft: 0),
-                const SizedBox(height: 4),
-                CustomText(subtitle, fontSize: 16, color: Colors.white70, fromLeft: 0),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CustomText(
+                    title,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fromLeft: 0,
+                  ),
+                  const SizedBox(height: 4),
+                  CustomText(
+                    subtitle,
+                    fontSize: 16,
+                    color: Colors.white70,
+                    fromLeft: 0,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -520,12 +856,19 @@ class _HomePagePatientState extends State<HomePagePatient> {
           ElevatedButton.icon(
             onPressed: () async => await pickAndUploadFile(),
             icon: const Icon(Icons.upload_file, color: Colors.white),
-            label: const CustomText('Upload EEG Data',
-                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, fromLeft: 0),
+            label: const CustomText(
+              'Upload EEG Data',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fromLeft: 0,
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF8e44ad),
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -541,9 +884,17 @@ class CurveClipper extends CustomClipper<Path> {
     var path = Path();
     path.lineTo(0, size.height - 30);
     path.quadraticBezierTo(
-        size.width / 4, size.height, size.width / 2, size.height);
+      size.width / 4,
+      size.height,
+      size.width / 2,
+      size.height,
+    );
     path.quadraticBezierTo(
-        size.width * 3 / 4, size.height, size.width, size.height - 30);
+      size.width * 3 / 4,
+      size.height,
+      size.width,
+      size.height - 30,
+    );
     path.lineTo(size.width, 0);
     path.close();
     return path;
