@@ -13,24 +13,26 @@ enum PatientStatus {
 }
 
 class HomePageCaregiver extends StatefulWidget {
-  const HomePageCaregiver({super.key});
+  final String userName;
+  const HomePageCaregiver({super.key,required this.userName});
 
   @override
   State<HomePageCaregiver> createState() => _HomePageCaregiverState();
 }
 
 class _HomePageCaregiverState extends State<HomePageCaregiver> {
-  String userName = "Caregiver";
+
   String? caregiverEmail;
   PatientStatus _currentStatus = PatientStatus.stable;
 
   // List to track pending requests for the red dot notification
   List<String> _pendingRequestsList = [];
 
+
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -41,13 +43,6 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
       // Initial fetch to set the notification dot
       _refreshPendingRequests();
     }
-  }
-
-  Future<void> _loadUserName() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      userName = prefs.getString('user_name') ?? "Caregiver";
-    });
   }
 
   // Fetch requests where Receiver == ME (The Caregiver)
@@ -124,7 +119,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText('Hello, $userName',
+          CustomText('Welcome Back, ${widget.userName}',
               fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0),
           const CustomText('Your patients need you.',
               fontSize: 16, color: Colors.black54, fromLeft: 0),

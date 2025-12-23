@@ -98,48 +98,7 @@ Future<void> _deleteSharedData() async {
 // }
 
 Future<void> _readSharedData() async{
-  //////////////////////////////////////////////////////////////////////////////////
-                          ///read user first name
-  //////////////////////////////////////////////////////////////////////////////////
-  final User? currentUser = FirebaseAuth.instance.currentUser;
 
-  if (currentUser != null) {
-    try {
-      // fetch user name
-      final query = await FirebaseFirestore.instance
-          .collection('UsersInfo')
-          .where('email', isEqualTo: currentUser.email)
-          .limit(1)
-          .get();
-
-      // check if document exists for user
-      if (query.docs.isNotEmpty) {
-        final data = query.docs.first.data();
-
-        String firstName = data['name'] ?? data['firstName'] ?? '';
-
-        // save name to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_name', firstName);
-
-        if (kDebugMode) {
-          print("Success: Saved '$firstName' to local storage.");
-        }
-      } else {
-        if (kDebugMode) {
-          print("Error: No user document found for this email.");
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print("Error fetching data: $e");
-      }
-    }
-  }
-
-  //////////////////////////////////////////////////////////////////////////////////
-                      /// End of read user first name
-  //////////////////////////////////////////////////////////////////////////////////
 
 
   //////////////////////////////////////////////////////////////////////////////////

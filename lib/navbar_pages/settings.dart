@@ -418,6 +418,7 @@ class _SettingsState extends State<Settings> {
               ),
               ColorChangingContainer(
                 onTap: () async {
+                  await _deleteSharedData();
                   try {
                     await _authService.signOut();
                     Navigator.of(context).pushReplacement(
@@ -428,7 +429,6 @@ class _SettingsState extends State<Settings> {
                       SnackBar(content: Text('Error signing out: $e')),
                     );
                   }
-                  await _deleteSharedData();
                 },
                 icon: const Icon(Iconsax.logout, color: Colors.black54),
                 inWidget: const CustomText(
@@ -442,8 +442,8 @@ class _SettingsState extends State<Settings> {
               const SizedBox(height: 40),
               AnimatedButton(
                 onTap: () async {
-                  await _authService.deleteUser(context);
                   await _deleteSharedData();
+                  await _authService.deleteUser(context);
                 },
                 buttonColor: Colors.white,
                 text: 'Delete my account',
@@ -493,7 +493,6 @@ class _SettingsState extends State<Settings> {
 Future<void> _deleteSharedData()async {
   final prefs = await SharedPreferences.getInstance();
 
-  await prefs.remove('user_name');
   await prefs.remove('isPatient');
 
   if (kDebugMode) {

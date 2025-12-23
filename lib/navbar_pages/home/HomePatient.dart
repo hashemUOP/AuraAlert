@@ -4,24 +4,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-
-// Assuming these exist in your project
 import '../../global_widgets/custom_text.dart';
 import 'HomeCareGiver.dart';
 
 class HomePagePatient extends StatefulWidget {
-  const HomePagePatient({super.key});
+  final String userName;
+  const HomePagePatient({super.key,required this.userName});
 
   @override
   State<HomePagePatient> createState() => _HomePagePatientState();
 }
 
 class _HomePagePatientState extends State<HomePagePatient> {
-  String userName = "User";
+
   String? patientEmail;
   PatientStatus _currentStatus = PatientStatus.stable;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -34,8 +32,8 @@ class _HomePagePatientState extends State<HomePagePatient> {
   void initState() {
     super.initState();
     _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    _loadUserName();
 
+    //read user (patient) email
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       patientEmail = user.email;
@@ -45,13 +43,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
       // Initial fetch to set the notification dot
       _refreshPendingRequests();
     }
-  }
-
-  Future<void> _loadUserName() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      userName = prefs.getString('user_name') ?? "User";
-    });
   }
 
   Future<void> _refreshPendingRequests() async {
@@ -84,7 +75,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
     }
   }
 
-  // --- UPLOAD LOGIC ---
+  // --- Uploading EDF file sending it to server via REST API ---
   Future<void> pickAndUploadFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -196,7 +187,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText('Welcome Back, $userName',
+          CustomText('Welcome Back, ${widget.userName}',
               fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0),
           const CustomText('Stay calm and safe.',
               fontSize: 16, color: Colors.black54, fromLeft: 0),
