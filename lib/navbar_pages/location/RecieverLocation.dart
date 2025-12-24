@@ -53,7 +53,7 @@ class _LiveTrackingPageState extends State<LiveTrackingPage> {
               Marker(
                 markerId: const MarkerId('targetUser'),
                 position: userPosition,
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
                 // We can even show the patient name if needed
                 infoWindow: InfoWindow(
                   title: "Patient Location",

@@ -31,7 +31,6 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   // List to track pending requests for the red dot notification
   List<String> _pendingRequestsList = [];
 
-
   //load patientEmail cant async on initState
   @override
   void initState() {
@@ -67,33 +66,38 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
       }
     }
   }
-  //get the caregiver's patient email
-  Future<String?> _getPatientEmail()async{
-      try {
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('Friendship')
-            .where('Caregivers', arrayContains: caregiverEmail) // search the array field for caregiver email
-            .limit(1)
-            .get();
 
-        if (querySnapshot.docs.isNotEmpty) {
-          // Get the data from the first document found
-          final String patientEmail = querySnapshot.docs.first['Patient'];
-          if (kDebugMode) print("Found Patient: $patientEmail");
-          return patientEmail;
-        } else {
-          if (kDebugMode) {
-            print("No patient found for this caregiver.");
-          }
-          return null;
-        }
-      } catch (e) {
+  //get the caregiver's patient email
+  Future<String?> _getPatientEmail() async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('Friendship')
+          .where(
+            'Caregivers',
+            arrayContains: caregiverEmail,
+          ) // search the array field for caregiver email
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Get the data from the first document found
+        final String patientEmail = querySnapshot.docs.first['Patient'];
+        if (kDebugMode) print("Found Patient: $patientEmail");
+        return patientEmail;
+      } else {
         if (kDebugMode) {
-          print("Error getting document: $e");
+          print("No patient found for this caregiver.");
         }
         return null;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error getting document: $e");
+      }
+      return null;
     }
   }
+
   // Fetch requests where Receiver == ME (The Caregiver)
   Future<void> _refreshPendingRequests() async {
     if (caregiverEmail != null) {
@@ -577,7 +581,8 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   Widget _buildLastAnalysisCard() {
     return Card(
       elevation: 2,
-      shadowColor: Colors.grey.withOpacity(0.1),
+      shadowColor: Colors.grey.withOpacity(0.3),
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -592,11 +597,14 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
               fromLeft: 0,
             ),
             const SizedBox(height: 16),
-            _buildInfoRow('Time of last analysis:', analysisTime.toString() ?? "-"),
+            _buildInfoRow(
+              'Time of last analysis:',
+              analysisTime.toString() ?? "-",
+            ),
             const Divider(height: 24),
-            _buildInfoRow('Result:', result ??"-"),
+            _buildInfoRow('Result:', result ?? "-"),
             const Divider(height: 24),
-            _buildInfoRow('Confidence:',confidence ?? "-"),
+            _buildInfoRow('Confidence:', confidence ?? "-"),
             const Divider(height: 24),
             _buildInfoRow('AI detected:', aiDetected ?? "-"),
           ],
@@ -623,14 +631,61 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
 
   Widget _buildLocationCard(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-    return Container(
-      width: screenWidth*0.9,
-      height: 200,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: LiveTrackingPage(targetUserId: patientEmail!),
+
+    // null safety check
+    // if user (patient) still not loaded  show a loading spinner
+    if (patientEmail == null) {
+      return Container(
+        width: screenWidth * 0.9,
+        height: 200,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 10),
+              CustomText("Locating patient...", fromLeft: 0.0),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // if email has been assigned , show the map
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.topLeft,
+          child: CustomText(
+              "Patient's Live Location",
+              fontSize: 18,
+              fromLeft: 20,
+              fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 20,),
+        Container(
+          width: screenWidth * 0.85,
+          height: 250,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 3,
+                blurRadius: 4,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          // it is now safe to use '!' because we checked for null above
+          child: LiveTrackingPage(targetUserId: patientEmail!),
+        ),
+      ],
     );
   }
 }

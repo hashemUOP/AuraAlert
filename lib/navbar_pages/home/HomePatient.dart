@@ -731,7 +731,8 @@ class _HomePagePatientState extends State<HomePagePatient> {
   Widget _buildLastAnalysisCard() {
     return Card(
       elevation: 2,
-      shadowColor: Colors.grey.withOpacity(0.1),
+      shadowColor: Colors.grey.withOpacity(0.3),
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
