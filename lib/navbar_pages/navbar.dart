@@ -4,10 +4,10 @@ WillPopScope this widget is deprecated try using if playstore doesn't accept app
 use Navigator.pushReplacement in main.dart which prevents user from pop after
 sending user to a new route(page),in other words doesn't keep old route in stack
 as if the new route is the top of stack and only element in it
-
  */
 import 'package:aura_alert/navbar_pages/ChatBotMain.dart';
 import 'package:aura_alert/navbar_pages/Home.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:iconsax/iconsax.dart';
@@ -15,6 +15,11 @@ import 'package:aura_alert/navbar_pages/reminders.dart';
 import 'package:aura_alert/navbar_pages/Learn.dart';
 import 'package:aura_alert/navbar_pages/settings.dart';
 import 'package:flutter/services.dart';
+
+// ✅ Added Imports for Location Logic
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:aura_alert/navbar_pages/location/SenderLocation.dart'; // Ensure this matches your file path
 
 class MyNavBar extends StatefulWidget {
 
@@ -30,19 +35,50 @@ class _MyNavBarState extends State<MyNavBar> {
   bool hasUsedGlobalIndex = false; // Flag to track if globalSelectedIndex has been used
   bool? hasConnection;
 
-
   @override
   void initState() {
     super.initState();
     // _listenToConnectionChanges();
+
     // Check if globalSelectedIndex is provided and has not been used yet
     if (widget.globalSelectedIndex != null && !hasUsedGlobalIndex) {
       _selectedIndex = widget.globalSelectedIndex!;
       hasUsedGlobalIndex = true; // Mark as used
     }
+
+    // ✅ Call the location starter here
+    _checkAndStartLocationService();
   }
 
+  // ✅ New Function to handle Location Sharing
+  Future<void> _checkAndStartLocationService() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Retrieve the 'isPatient' value we saved during login/loading
+      bool isPatient = prefs.getBool('isPatient') ?? false;
 
+      if (isPatient) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          // Initialize your service
+          LocationService locationService = LocationService();
+
+          // Start sharing (background mode enabled inside the service)
+          locationService.shareLocation(user.email!);
+
+          if (kDebugMode) {
+            print("📍 Location service started for Patient: ${user.email}");
+            print("im in navbar");
+          }
+
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error starting location service: $e");
+      }
+    }
+  }
 
   void _navigateBottomBar(int index) {
     setState(() {

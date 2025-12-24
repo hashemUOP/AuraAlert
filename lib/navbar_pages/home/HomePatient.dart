@@ -220,7 +220,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
 
             // --- BLACK DIMMER ---
             Visibility(
-              visible: showOverlay, // <--- 4. Updated Logic
+              visible: showOverlay,
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
@@ -230,7 +230,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
 
             // --- LOADING / STATUS BOX ---
             Visibility(
-              visible: showOverlay, // <--- 4. Updated Logic
+              visible: showOverlay,
               child: Center(
                 child: Container(
                   width: screenWidth * 0.7,
@@ -423,7 +423,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
           children: [
             CustomText(
               'Welcome Back, ${widget.userName}',
-              fontSize: 24,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.black,
               fromLeft: 0,
@@ -616,7 +616,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
   Future<void> _loadPatientLastResult() async {
     if (patientEmail == null) return;
 
-    // Call the helper function to get the Map
+    // call helper function that returns a map of patients last test data
     final data = await _getPatientLastTestResult(patientEmail!);
 
     if (mounted) {
@@ -638,7 +638,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
           analysisTime = null;
         }
 
-        // OPTIONAL: Update your status card based on this result immediately
+        // update your status card based on this result immediately
         if (result == "Seizure" || seizureAlert == true) {
           _currentStatus = PatientStatus.alert;
         } else {

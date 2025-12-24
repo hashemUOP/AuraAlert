@@ -1,0 +1,2 @@
+#1 in navbar there is a function _checkAndStartLocationService() that starts tracking patient location in background so
+caregiver can see his live location and track him

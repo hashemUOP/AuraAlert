@@ -1,50 +1,99 @@
 import 'dart:async';
+import 'package:aura_alert/navbar_pages/location/RecieverLocation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../global_widgets/custom_text.dart';
 
-enum PatientStatus {
-  stable,
-  warning,
-  alert,
-}
+enum PatientStatus { stable, warning, alert }
 
 class HomePageCaregiver extends StatefulWidget {
   final String userName;
-  const HomePageCaregiver({super.key,required this.userName});
+  const HomePageCaregiver({super.key, required this.userName});
 
   @override
   State<HomePageCaregiver> createState() => _HomePageCaregiverState();
 }
 
 class _HomePageCaregiverState extends State<HomePageCaregiver> {
-
   String? caregiverEmail;
   PatientStatus _currentStatus = PatientStatus.stable;
+
+  //define variables for the last test results
+  String? aiDetected;
+  String? analysisTime;
+  String? confidence;
+  String? result;
+  String? patientEmail;
+  bool? seizureAlert;
 
   // List to track pending requests for the red dot notification
   List<String> _pendingRequestsList = [];
 
 
+  //load patientEmail cant async on initState
   @override
   void initState() {
     super.initState();
+    // initState cannot be async, so we call a separate async function
+    _initializeData();
+  }
 
-
+  Future<void> _initializeData() async {
     final user = FirebaseAuth.instance.currentUser;
+
     if (user != null) {
       caregiverEmail = user.email;
       if (kDebugMode) {
         print("Current Caregiver Email initialized: $caregiverEmail");
       }
-      // Initial fetch to set the notification dot
+
+      // 1. Load pending requests (Independant)
       _refreshPendingRequests();
+
+      // 2. CRITICAL: Get Patient Email FIRST
+      // We must await this because the next step depends on it
+      String? foundPatientEmail = await _getPatientEmail();
+
+      // 3. Update state with the patient email
+      if (foundPatientEmail != null) {
+        setState(() {
+          patientEmail = foundPatientEmail;
+        });
+
+        // 4. NOW it is safe to load the test results
+        await _loadPatientLastResult();
+      }
     }
   }
+  //get the caregiver's patient email
+  Future<String?> _getPatientEmail()async{
+      try {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('Friendship')
+            .where('Caregivers', arrayContains: caregiverEmail) // search the array field for caregiver email
+            .limit(1)
+            .get();
 
+        if (querySnapshot.docs.isNotEmpty) {
+          // Get the data from the first document found
+          final String patientEmail = querySnapshot.docs.first['Patient'];
+          if (kDebugMode) print("Found Patient: $patientEmail");
+          return patientEmail;
+        } else {
+          if (kDebugMode) {
+            print("No patient found for this caregiver.");
+          }
+          return null;
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print("Error getting document: $e");
+        }
+        return null;
+    }
+  }
   // Fetch requests where Receiver == ME (The Caregiver)
   Future<void> _refreshPendingRequests() async {
     if (caregiverEmail != null) {
@@ -77,7 +126,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
                     const SizedBox(height: 24),
                     _buildLastAnalysisCard(),
                     const SizedBox(height: 24),
-                    _buildLocationCard(),
+                    _buildLocationCard(context),
                   ],
                 ),
               ),
@@ -118,39 +167,58 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          CustomText('Welcome Back, ${widget.userName}',
-              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0),
-          const CustomText('Your patients need you.',
-              fontSize: 16, color: Colors.black54, fromLeft: 0),
-        ]),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CustomText(
+              'Welcome Back, ${widget.userName}',
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+              fromLeft: 0,
+            ),
+            const CustomText(
+              'Your patients need you.',
+              fontSize: 16,
+              color: Colors.black54,
+              fromLeft: 0,
+            ),
+          ],
+        ),
 
         // Notification Bell Logic
         Stack(
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications, color: Color(0xFF8e44ad), size: 30),
+              icon: const Icon(
+                Icons.notifications,
+                color: Color(0xFF8e44ad),
+                size: 30,
+              ),
               onPressed: () {
                 _refreshPendingRequests().then((_) {
                   showDialog(
                     context: context,
                     builder: (BuildContext context) {
                       return StatefulBuilder(
-                          builder: (context, setState) {
-                            return AlertDialog(
-                              title: const Text("Patient Requests"),
-                              content: _notificationDialogueBody(context, setState),
-                              actions: [
-                                TextButton(
-                                  child: const Text("Close"),
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                    _refreshPendingRequests();
-                                  },
-                                ),
-                              ],
-                            );
-                          }
+                        builder: (context, setState) {
+                          return AlertDialog(
+                            title: const Text("Patient Requests"),
+                            content: _notificationDialogueBody(
+                              context,
+                              setState,
+                            ),
+                            actions: [
+                              TextButton(
+                                child: const Text("Close"),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _refreshPendingRequests();
+                                },
+                              ),
+                            ],
+                          );
+                        },
                       );
                     },
                   );
@@ -167,7 +235,10 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
+                  constraints: const BoxConstraints(
+                    minWidth: 12,
+                    minHeight: 12,
+                  ),
                 ),
               ),
           ],
@@ -216,7 +287,11 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
     );
   }
 
-  Widget _requestRow(String patientRequestEmail, double screenWidth, StateSetter setState) {
+  Widget _requestRow(
+    String patientRequestEmail,
+    double screenWidth,
+    StateSetter setState,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Container(
@@ -240,7 +315,11 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(patientRequestEmail, style: const TextStyle(fontSize: 14), overflow: TextOverflow.ellipsis,),
+                      Text(
+                        patientRequestEmail,
+                        style: const TextStyle(fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const CustomText("Patient", fromLeft: 0, fontSize: 11),
                     ],
                   ),
@@ -254,7 +333,10 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
                   icon: const Icon(Icons.close, color: Colors.red, size: 30),
                   onPressed: () async {
                     // Reject logic: Sender is Patient, Receiver is Me (Caregiver)
-                    await _rejectPendingRequest(patientRequestEmail, caregiverEmail!);
+                    await _rejectPendingRequest(
+                      patientRequestEmail,
+                      caregiverEmail!,
+                    );
                     setState(() {});
                   },
                 ),
@@ -262,7 +344,10 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
                 IconButton(
                   icon: const Icon(Icons.check, color: Colors.purple, size: 30),
                   onPressed: () async {
-                    await _acceptPendingRequest(patientRequestEmail, caregiverEmail!);
+                    await _acceptPendingRequest(
+                      patientRequestEmail,
+                      caregiverEmail!,
+                    );
                     setState(() {});
                   },
                 ),
@@ -276,6 +361,74 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
 
   // --- DATA OPERATIONS ---
 
+  Future<Map<String, dynamic>> _getPatientLastTestResult(
+    String patientEmail,
+  ) async {
+    // Default map with "empty" values
+    final Map<String, dynamic> defaultData = {
+      'ai_detected': '-',
+      'analysis_time': null, // Kept null so UI can check before formatting
+      'confidence': '-',
+      'result': '-',
+      'seizure_alert': false, // Boolean default
+    };
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('LastAnalysis')
+          .where('patient', isEqualTo: patientEmail)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Data found: Return the actual data from Firestore
+        return querySnapshot.docs.first.data();
+      } else {
+        // No data found: Return the default "-" map
+        return defaultData;
+      }
+    } catch (e) {
+      if (kDebugMode) print("Error fetching last result: $e");
+      // On error, return default map to prevent app crash
+      return defaultData;
+    }
+  }
+
+  Future<void> _loadPatientLastResult() async {
+    if (patientEmail == null) return;
+
+    // call helper function that returns a map of patients last test data
+    final data = await _getPatientLastTestResult(patientEmail!);
+
+    if (mounted) {
+      setState(() {
+        // Update Strings (using toString() ensures safety if null)
+        aiDetected = data['ai_detected']?.toString() ?? "-";
+        confidence = data['confidence']?.toString() ?? "-";
+        result = data['result']?.toString() ?? "-";
+
+        // Update Boolean
+        seizureAlert = data['seizure_alert'] is bool
+            ? data['seizure_alert']
+            : false;
+
+        // Update DateTime (Handle Firestore Timestamp conversion)
+        if (data['analysis_time'] != null) {
+          analysisTime = data['analysis_time'];
+        } else {
+          analysisTime = null;
+        }
+
+        // update your status card based on this result immediately
+        if (result == "Seizure" || seizureAlert == true) {
+          _currentStatus = PatientStatus.alert;
+        } else {
+          _currentStatus = PatientStatus.stable;
+        }
+      });
+    }
+  }
+
   // Get requests where Receiver is ME (Caregiver)
   Future<List<String>> _getPendingRequests(String myEmail) async {
     try {
@@ -284,10 +437,13 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
           .where('Receiver', isEqualTo: myEmail)
           .get();
 
-      final senderEmails = querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        return data['Sender'] as String? ?? '';
-      }).where((email) => email.isNotEmpty).toList();
+      final senderEmails = querySnapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            return data['Sender'] as String? ?? '';
+          })
+          .where((email) => email.isNotEmpty)
+          .toList();
 
       return senderEmails;
     } catch (e) {
@@ -297,7 +453,10 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   }
 
   // Reject: Delete request where Sender=Patient and Receiver=Me
-  Future<void> _rejectPendingRequest(String patientSenderEmail, String meReceiverEmail) async {
+  Future<void> _rejectPendingRequest(
+    String patientSenderEmail,
+    String meReceiverEmail,
+  ) async {
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('PendingRequests')
@@ -315,7 +474,10 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   }
 
   // Accept: Add ME to Patient's Friendship document
-  Future<void> _acceptPendingRequest(String patientSenderEmail, String meReceiverEmail) async {
+  Future<void> _acceptPendingRequest(
+    String patientSenderEmail,
+    String meReceiverEmail,
+  ) async {
     final firestore = FirebaseFirestore.instance;
     try {
       // 1. Find Friendship doc for the PATIENT
@@ -329,7 +491,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
         // Doc exists: Add me to their caregivers array
         final docRef = friendshipQuery.docs.first.reference;
         await docRef.update({
-          'Caregivers': FieldValue.arrayUnion([meReceiverEmail])
+          'Caregivers': FieldValue.arrayUnion([meReceiverEmail]),
         });
       } else {
         // Doc doesn't exist: Create new one for patient
@@ -357,60 +519,119 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
     String subtitle;
     switch (_currentStatus) {
       case PatientStatus.stable:
-        icon = Icons.check_circle; cardColor = Colors.green.shade500; title = 'No Seizure Detected'; subtitle = 'Patient is Stable'; break;
+        icon = Icons.check_circle;
+        cardColor = Colors.green.shade500;
+        title = 'No Seizure Detected';
+        subtitle = 'Patient is Stable';
+        break;
       case PatientStatus.warning:
-        icon = Icons.warning; cardColor = Colors.orange.shade500; title = 'Warning: Possible Seizure Detected'; subtitle = 'AI analysis indicates a risk.'; break;
+        icon = Icons.warning;
+        cardColor = Colors.orange.shade500;
+        title = 'Warning: Possible Seizure Detected';
+        subtitle = 'AI analysis indicates a risk.';
+        break;
       case PatientStatus.alert:
-        icon = Icons.dangerous; cardColor = Colors.red.shade600; title = 'ALERT ACTIVE'; subtitle = 'Last alert was 3 minutes ago'; break;
+        icon = Icons.dangerous;
+        cardColor = Colors.red.shade600;
+        title = 'ALERT ACTIVE';
+        subtitle = 'Last alert was 3 minutes ago';
+        break;
     }
     return Card(
-      elevation: 0, color: cardColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      color: cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Row(children: [
-          Icon(icon, color: Colors.white, size: 48), const SizedBox(width: 16),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            CustomText(title, fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white, fromLeft: 0), const SizedBox(height: 4),
-            CustomText(subtitle, fontSize: 16, color: Colors.white70, fromLeft: 0),
-          ],),),
-        ],),),);
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 48),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CustomText(
+                    title,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fromLeft: 0,
+                  ),
+                  const SizedBox(height: 4),
+                  CustomText(
+                    subtitle,
+                    fontSize: 16,
+                    color: Colors.white70,
+                    fromLeft: 0,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildLastAnalysisCard() {
     return Card(
-      elevation: 2, shadowColor: Colors.grey.withOpacity(0.1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
+      shadowColor: Colors.grey.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const CustomText('Last Analysis Summary', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0), const SizedBox(height: 16),
-          _buildInfoRow('Time of last analysis:', '11:45 AM, Today'), const Divider(height: 24),
-          _buildInfoRow('Result:', 'Stable'), const Divider(height: 24),
-          _buildInfoRow('Confidence:', '98.5%'), const Divider(height: 24),
-          _buildInfoRow('AI detected:', 'Normal brainwave patterns'),
-        ],),),);
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const CustomText(
+              'Last Analysis Summary',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+              fromLeft: 0,
+            ),
+            const SizedBox(height: 16),
+            _buildInfoRow('Time of last analysis:', analysisTime.toString() ?? "-"),
+            const Divider(height: 24),
+            _buildInfoRow('Result:', result ??"-"),
+            const Divider(height: 24),
+            _buildInfoRow('Confidence:',confidence ?? "-"),
+            const Divider(height: 24),
+            _buildInfoRow('AI detected:', aiDetected ?? "-"),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildInfoRow(String label, String value) {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      CustomText(label, fontSize: 15, color: Colors.grey[600], fromLeft: 0),
-      CustomText(value, fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black, fromLeft: 0),
-    ],);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        CustomText(label, fontSize: 15, color: Colors.grey[600], fromLeft: 0),
+        CustomText(
+          value,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: Colors.black,
+          fromLeft: 0,
+        ),
+      ],
+    );
   }
 
-  Widget _buildLocationCard() {
-    return Card(
-      elevation: 2, shadowColor: Colors.grey.withOpacity(0.1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const CustomText('Real-time Location', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black, fromLeft: 0), const SizedBox(height: 16),
-          Container(height: 200, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12),),
-            child: Stack(alignment: Alignment.center, children: [
-              const Icon(Icons.map, color: Colors.grey, size: 100), const Icon(Icons.location_on, color: Colors.red, size: 40),
-              Positioned(bottom: 10, left: 10, right: 10, child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(8),),
-                child: const CustomText('123 Health St, Wellness City', textAlign: TextAlign.center, color: Colors.white, fontSize: 14, fromLeft: 0),),)
-            ],),)
-        ],),),);
+  Widget _buildLocationCard(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    return Container(
+      width: screenWidth*0.9,
+      height: 200,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: LiveTrackingPage(targetUserId: patientEmail!),
+    );
   }
 }
 
@@ -419,11 +640,17 @@ class CurveClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     var path = Path();
     path.lineTo(0, size.height - 40);
-    path.quadraticBezierTo(size.width / 2, size.height, size.width, size.height - 40);
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height,
+      size.width,
+      size.height - 40,
+    );
     path.lineTo(size.width, 0);
     path.close();
     return path;
   }
+
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

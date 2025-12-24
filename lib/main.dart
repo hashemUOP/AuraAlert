@@ -12,6 +12,8 @@ import 'package:aura_alert/login_signup_welcome/auth_services.dart';
 import 'package:aura_alert/gemini_api_key.dart';
 import 'package:aura_alert/navbar_pages/reminder/notification_service.dart';
 
+import 'navbar_pages/location/SenderLocation.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -19,7 +21,9 @@ Future<void> main() async {
   );
 
   Gemini.init(apiKey: apiKey);
+
   await NotificationService.initialize();
+
   await _deleteSharedData();
 
   runApp(const MyApp());
@@ -40,6 +44,7 @@ class MyApp extends StatelessWidget {
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
+
 
   @override
   Widget build(BuildContext context) {
@@ -93,16 +98,14 @@ Future<void> _deleteSharedData() async {
   }
 }
 
-// Future<void> _createSharedData() async{
-//
-// }
 
-Future<void> _readSharedData() async{
+// Make sure to instantiate your service at the top of the file or inside this function
+// import 'navbar_pages/location/SenderLocation.dart';
 
-
+Future<void> _readSharedData() async {
 
   //////////////////////////////////////////////////////////////////////////////////
-                ///read user state is patient or caregiver
+              ///read user state is patient or caregiver
   //////////////////////////////////////////////////////////////////////////////////
 
   bool? isPatient = await getIsPatient();
@@ -117,6 +120,8 @@ Future<void> _readSharedData() async{
     if (kDebugMode) {
       print("Success: Saved isPatient = $isPatient to SharedPreferences");
     }
+
+
   } else {
     if (kDebugMode) {
       print("Warning: Could not fetch isPatient status (returned null).");
