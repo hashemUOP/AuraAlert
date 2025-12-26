@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,14 +17,15 @@ class Question3Screen extends StatefulWidget {
 
 class _Question3ScreenState extends State<Question3Screen> {
   String? _email;
+  User? _currentUser; // To hold the full user object (for UID)
   final TextEditingController _nameController = TextEditingController();
 
   @override
-  void initState(){
-    //get the email that the user logged in using google on page initial
+  void initState() {
     super.initState();
-    final user = FirebaseAuth.instance.currentUser;
-    _email = FirebaseAuth.instance.currentUser?.email;
+    // Get the currently logged-in user (e.g., from Google Sign-In)
+    _currentUser = FirebaseAuth.instance.currentUser;
+    _email = _currentUser?.email;
   }
 
   @override
@@ -32,28 +34,35 @@ class _Question3ScreenState extends State<Question3Screen> {
     super.dispose();
   }
 
+  // --- UPDATED FUNCTION ---
   Future<void> createUserInfo({
+    required String uid, // Added UID
     required String name,
     required String phone,
     required String email,
     required bool isPatient,
   }) async {
     try {
-      // Get reference to 'User's Info' collection
+      // 1. Get the FCM Device Token
+      String? token = await FirebaseMessaging.instance.getToken();
+
+      // 2. Reference the collection
       CollectionReference usersCollection =
       FirebaseFirestore.instance.collection("UsersInfo");
 
-      // Create a new document with auto-generated ID
-      await usersCollection.add({
+      // 3. Save Data using Email as the Document ID
+      await usersCollection.doc(email).set({
+        'uid': uid,
         'name': name,
         'phone': phone,
         'email': email,
         'isPatient': isPatient,
+        'fcm_token': token, // <--- SAVING TOKEN
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (kDebugMode) {
-        print("User document created successfully!");
+        print("User document created successfully with Token $token");
       }
     } catch (e) {
       if (kDebugMode) {
@@ -69,12 +78,13 @@ class _Question3ScreenState extends State<Question3Screen> {
   Future<void> _saveNameInSharedRef() async {
     String name = _nameController.text.trim();
 
-    //save the entered phone number to the shared preferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_name', name);
 
-    String? name_shared = prefs.getString('user_name');
-    print('User name in shared ref : $name_shared');
+    String? nameShared = prefs.getString('user_name');
+    if (kDebugMode) {
+      print('User name in shared ref : $nameShared');
+    }
   }
 
   @override
@@ -124,7 +134,7 @@ class _Question3ScreenState extends State<Question3Screen> {
                   children: [
                     Expanded(
                       child: TextField(
-                        controller: _nameController, // <-- Add controller
+                        controller: _nameController,
                         keyboardType: TextInputType.text,
                         style: const TextStyle(color: Colors.black, fontSize: 16),
                         decoration: InputDecoration(
@@ -140,39 +150,38 @@ class _Question3ScreenState extends State<Question3Screen> {
               const Spacer(),
               ElevatedButton(
                 onPressed: () async {
-                  await _saveNameInSharedRef(); // <-- Save name if entered
+                  await _saveNameInSharedRef();
 
-                  //email safety check
-                  if (_email == null) {
+                  // Safety checks
+                  if (_email == null || _currentUser == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Error: Missing user email")),
+                      const SnackBar(content: Text("Error: User not authenticated")),
                     );
                     return;
                   }
 
-                  /////////////////// create User's Info Document ////////////////////////////
-                  //load shared ref data
+                  // Load shared ref data
                   final prefs = await SharedPreferences.getInstance();
-                  //get all data stored in shared ref
                   int? choice = prefs.getInt('selectedOption');
                   String? phoneShared = prefs.getString('user_phone');
                   String? nameShared = prefs.getString('user_name');
 
                   try {
+                    // Call the updated function
                     await createUserInfo(
+                      uid: _currentUser!.uid, // Pass UID
                       name: nameShared ?? "",
                       phone: phoneShared ?? "",
                       isPatient: intToBool(choice ?? 0),
                       email: _email!,
                     );
+
                     if (kDebugMode) print("User document created successfully!");
 
-                    //////////////////clear shared preferences///////////////////////
-                    //after User's Info successfully created we will delete all shared ref data
+                    // Clear shared preferences
                     await prefs.clear();
-                    /////////////////////////////////////////////////////////////////
 
-                    // Navigate to login screen
+                    // Navigate
                     if (!mounted) return;
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(builder: (_) => const MyNavBar()),
@@ -180,7 +189,6 @@ class _Question3ScreenState extends State<Question3Screen> {
                   } catch (e) {
                     if (kDebugMode) print("Error creating user document: $e");
                   }
-                  /////////////////////////////////////////////////////////////////////
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF8e44ad),
@@ -233,4 +241,3 @@ class _Question3ScreenState extends State<Question3Screen> {
     );
   }
 }
-

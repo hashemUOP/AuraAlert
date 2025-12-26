@@ -1,0 +1,23 @@
+we cannot reliably run a Firestore listener inside the Flutter app while the app is fully closed (terminated).
+Android and iOS will kill the process to save battery.
+
+To achieve this, you must move the "Listener" from the App to the Backend (Cloud Functions) a service from firebase .
+
+Here is the required architecture:
+
+1. Change Happens: Data changes in Firestore (e.g., order_status becomes "ready").
+
+2. Cloud Function Triggers: A backend script (Cloud Function) automatically wakes up.
+
+3. Check & Send: The script checks the value and sends an FCM Notification to the user's token.
+
+4. User Notified: The user sees the notification on their phone, even if their phone is locked or the app is killed.
+=========================================================================================================================================
+to initialize (Cloud Functions) a service from firebase we run the command => (firebase init functions)
+run command => (firebase deploy) to deploy JS scripts to firebase functions
+==========================================================================================================================================
+Cloud Functions for Firebase is Google's direct equivalent to AWS Lambda.
+
+Both are "Serverless" (Function-as-a-Service) tools. This means you write a single function (a block of code),
+deploy it, and it "sleeps" until an event wakes it up to run. You don't manage any servers,
+and you only pay for the milliseconds the code is actually running.

@@ -1,6 +1,7 @@
 import 'package:aura_alert/navbar_pages/navbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:aura_alert/global_widgets/custom_text.dart';
@@ -21,13 +22,11 @@ class _Question5ScreenState extends State<Question5Screen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  bool _isValid = false; // <--- Button enabled state
+  bool _isValid = false;
 
   @override
   void initState() {
     super.initState();
-
-    // Listener to update button state when typing
     _passwordController.addListener(_validatePasswords);
     _confirmPasswordController.addListener(_validatePasswords);
   }
@@ -48,7 +47,6 @@ class _Question5ScreenState extends State<Question5Screen> {
         email: email,
         password: password,
       );
-
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
       if (kDebugMode) {
@@ -63,23 +61,29 @@ class _Question5ScreenState extends State<Question5Screen> {
     required String phone,
     required String email,
     required bool isPatient,
+    required String uid, // Added UID to parameters for complete data
   }) async {
     try {
-      // Get reference to 'User's Info' collection
+      // 1. Get the FCM Device Token
+      String? token = await FirebaseMessaging.instance.getToken();
+
+      // 2. Reference the collection
       CollectionReference usersCollection =
       FirebaseFirestore.instance.collection("UsersInfo");
 
-      // Create a new document with auto-generated ID
-      await usersCollection.add({
+      // 3. Save Data using Email as the Document ID
+      await usersCollection.doc(email).set({
+        'uid': uid,
         'name': name,
         'phone': phone,
         'email': email,
         'isPatient': isPatient,
+        'fcm_token': token, // <--- SAVING THE TOKEN HERE to send notifications serverless to phone
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (kDebugMode) {
-        print("User document created successfully!");
+        print("User document created successfully with Token: $token");
       }
     } catch (e) {
       if (kDebugMode) {
@@ -135,7 +139,7 @@ class _Question5ScreenState extends State<Question5Screen> {
 
               const SizedBox(height: 30),
 
-              // --- PASSWORD FIELD ---
+              // --- PASSWORD FIELDS ---
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 decoration: BoxDecoration(
@@ -166,7 +170,6 @@ class _Question5ScreenState extends State<Question5Screen> {
 
               const SizedBox(height: 15),
 
-              // --- CONFIRM PASSWORD FIELD ---
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 decoration: BoxDecoration(
@@ -203,52 +206,44 @@ class _Question5ScreenState extends State<Question5Screen> {
                     ? () async {
                   if (kDebugMode) print("Password confirmed!");
 
-                  /////////////////// sign up users account////////////////////////////
-                  //load shared ref data
+                  // 1. Load shared ref data
                   final prefs = await SharedPreferences.getInstance();
-                  //get users email from shared ref
                   String? emailShared = prefs.getString('user_email');
-                  if (emailShared == null) return; // safety check
+                  if (emailShared == null) return;
 
-                  //create users account
+                  // 2. Create Auth User
                   final user = await signUpWithEmail(
                     emailShared,
                     _confirmPasswordController.text.trim(),
                   );
-                  if (user != null) {
-                    if (kDebugMode) {
-                      print("User created: ${user.email}");
-                    }
-                  } else {
-                    if (kDebugMode) {
-                      print("Failed to create account");
-                    }
-                    return; // stop execution if signup failed
+
+                  if (user == null) {
+                    if (kDebugMode) print("Failed to create account");
+                    return;
                   }
-                  /////////////////////////////////////////////////////////////////////
 
-                  /////////////////// create User's Info Document ////////////////////////////
-                  //after User's Info successfully created we will delete all shared ref data
+                  if (kDebugMode) print("User created: ${user.email}");
 
-                  //get all data stored in shared ref
+                  // 3. Create User's Info Document
                   int? choice = prefs.getInt('selectedOption');
                   String? phoneShared = prefs.getString('user_phone');
                   String? nameShared = prefs.getString('user_name');
 
                   try {
                     await createUserInfo(
+                      uid: user.uid, // Pass the new UID
                       name: nameShared ?? "",
                       phone: phoneShared ?? "",
                       email: emailShared,
                       isPatient: intToBool(choice ?? 0),
                     );
+
                     if (kDebugMode) print("User document created successfully!");
 
-                    //////////////////clear shared preferences///////////////////////
+                    // 4. Clear shared preferences
                     await prefs.clear();
-                    /////////////////////////////////////////////////////////////////
 
-                    // Navigate to login screen
+                    // 5. Navigate
                     if (!mounted) return;
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(builder: (_) => const MyNavBar()),
@@ -256,11 +251,10 @@ class _Question5ScreenState extends State<Question5Screen> {
                   } catch (e) {
                     if (kDebugMode) print("Error creating user document: $e");
                   }
-                  /////////////////////////////////////////////////////////////////////
                 }
-                    : null, // <---- Disabled when invalid
+                    : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isValid ? const Color(0xFF8e44ad) : Colors.grey, // <--- Grey when disabled
+                  backgroundColor: _isValid ? const Color(0xFF8e44ad) : Colors.grey,
                   minimumSize: const Size(double.infinity, 56),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -274,7 +268,6 @@ class _Question5ScreenState extends State<Question5Screen> {
                   fromLeft: 0.0,
                 ),
               ),
-
 
               const SizedBox(height: 20),
 
@@ -305,7 +298,6 @@ class _Question5ScreenState extends State<Question5Screen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
             ],
           ),

@@ -292,10 +292,10 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   }
 
   Widget _requestRow(
-    String patientRequestEmail,
-    double screenWidth,
-    StateSetter setState,
-  ) {
+      String patientRequestEmail,
+      double screenWidth,
+      StateSetter setState,
+      ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Container(
@@ -307,36 +307,36 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
           color: Colors.grey.shade100,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.person, color: Colors.purple, size: 34.0),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 100,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        patientRequestEmail,
-                        style: const TextStyle(fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const CustomText("Patient", fromLeft: 0, fontSize: 11),
-                    ],
+            // 1. The Icon (Fixed Size)
+            const Icon(Icons.person, color: Colors.purple, size: 29.0),
+            const SizedBox(width: 10),
+
+            // 2. The Text Information (Flexible Size)
+            // We use Expanded here to fill the remaining space
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    patientRequestEmail,
+                    style: const TextStyle(fontSize: 14),
+                    maxLines: 1, // ensure single line
+                    overflow: TextOverflow.ellipsis, // Adds "..." if email is too long
                   ),
-                ),
-              ],
+                  const CustomText("Patient", fromLeft: 0, fontSize: 11),
+                ],
+              ),
             ),
+
+            // 3. The Buttons (Fixed Size)
             Row(
+              mainAxisSize: MainAxisSize.min, // takes minimum space needed
               children: [
-                // REJECT BUTTON
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.red, size: 30),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 20),
                   onPressed: () async {
-                    // Reject logic: Sender is Patient, Receiver is Me (Caregiver)
                     await _rejectPendingRequest(
                       patientRequestEmail,
                       caregiverEmail!,
@@ -344,9 +344,8 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
                     setState(() {});
                   },
                 ),
-                // ACCEPT BUTTON
                 IconButton(
-                  icon: const Icon(Icons.check, color: Colors.purple, size: 30),
+                  icon: const Icon(Icons.check, color: Colors.purple, size: 20),
                   onPressed: () async {
                     await _acceptPendingRequest(
                       patientRequestEmail,
@@ -371,10 +370,10 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
     // Default map with "empty" values
     final Map<String, dynamic> defaultData = {
       'ai_detected': '-',
-      'analysis_time': null, // Kept null so UI can check before formatting
+      'analysis_time': "-",
       'confidence': '-',
       'result': '-',
-      'seizure_alert': false, // Boolean default
+      'seizure_alert': false,
     };
 
     try {
