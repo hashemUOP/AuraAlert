@@ -110,7 +110,9 @@ class _HomePagePatientState extends State<HomePagePatient> {
     final filename = file.name;
 
     try {
-      final uri = Uri.parse('http://127.0.0.1:8000/api/data/predict/');
+      ///update ip address with new copied ip address from cmd ipconfig
+      /// both laptop and physical devices must be connected to the same LAN
+      final uri = Uri.parse('http://192.168.100.60:8000/api/data/predict/');
       final request = http.MultipartRequest('POST', uri)
         ..files.add(
           http.MultipartFile.fromBytes(

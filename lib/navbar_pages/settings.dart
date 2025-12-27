@@ -23,7 +23,7 @@ class Settings extends StatefulWidget {
   State<Settings> createState() => _SettingsState();
 }
 
-/// 🔥 Fetch the signed-in user's full data from Firestore (UsersInfo collection)
+/// fetch the signed-in user's full data from Firestore (UsersInfo collection)
 Future<Map<String, dynamic>?> getUserData() async {
   try {
     final user = FirebaseAuth.instance.currentUser;
@@ -148,7 +148,6 @@ class _SettingsState extends State<Settings> {
   }
 
 
-
   Future<void> loadUserInfo() async {
     final data = await getUserData();
     if (mounted) {
@@ -160,8 +159,14 @@ class _SettingsState extends State<Settings> {
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
+    double screenHeight = MediaQuery
+        .of(context)
+        .size
+        .height;
 
     IconData patientIcon = Icons.person;
     IconData caregiverIcon = Icons.health_and_safety;
@@ -169,7 +174,8 @@ class _SettingsState extends State<Settings> {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(0),
-        child: AppBar(backgroundColor: Colors.white, automaticallyImplyLeading: false),
+        child: AppBar(
+            backgroundColor: Colors.white, automaticallyImplyLeading: false),
       ),
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -178,12 +184,15 @@ class _SettingsState extends State<Settings> {
             children: [
               const Padding(
                 padding: EdgeInsets.all(8.0),
-                child: Text("Settings", style: TextStyle(color: Colors.black54)),
+                child: Text(
+                    "Settings", style: TextStyle(color: Colors.black54)),
               ),
               const SizedBox(height: 30),
               ColorChangingContainer(
-                icon: const Icon(Icons.bug_report_outlined, color: Colors.black54),
-                iconPost: const Icon(Iconsax.arrow_right_3, color: Colors.black54),
+                icon: const Icon(
+                    Icons.bug_report_outlined, color: Colors.black54),
+                iconPost: const Icon(
+                    Iconsax.arrow_right_3, color: Colors.black54),
                 iconPostPadding: screenWidth * 0.423,
                 inWidget: const CustomText(
                   'Report bug',
@@ -193,12 +202,13 @@ class _SettingsState extends State<Settings> {
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              isPatient  == null ?
-                const SizedBox.shrink()       // show nothing if isPatient is null
-              : isPatient == true?            //show  ColorChangingContainer
+              isPatient == null ?
+              const SizedBox.shrink() // show nothing if isPatient is null
+                  : isPatient == true ? //show  ColorChangingContainer
               ColorChangingContainer(
                 icon: const Icon(Iconsax.star, color: Colors.black54),
-                iconPost: const Icon(Iconsax.arrow_right_3, color: Colors.black54),
+                iconPost: const Icon(
+                    Iconsax.arrow_right_3, color: Colors.black54),
                 iconPostPadding: screenWidth * 0.423,
                 inWidget: const CustomText(
                   'Caregiver List',
@@ -224,7 +234,7 @@ class _SettingsState extends State<Settings> {
                           color: Colors.white,
                           padding: const EdgeInsets.all(16),
                           child: SingleChildScrollView(
-                            child: PatientList()
+                              child: PatientList()
                           ),
                         ),
                       );
@@ -232,10 +242,11 @@ class _SettingsState extends State<Settings> {
                   );
                 },
               )
-              : // if isPatient == false show ColorChangingContainer Patient
+                  : // if isPatient == false show ColorChangingContainer Patient
               ColorChangingContainer(
                 icon: const Icon(Iconsax.star, color: Colors.black54),
-                iconPost: const Icon(Iconsax.arrow_right_3, color: Colors.black54),
+                iconPost: const Icon(
+                    Iconsax.arrow_right_3, color: Colors.black54),
                 iconPostPadding: screenWidth * 0.423,
                 inWidget: const CustomText(
                   'Patient Management',
@@ -272,8 +283,10 @@ class _SettingsState extends State<Settings> {
               ),
 
               ColorChangingContainer(
-                icon: const Icon(FontAwesomeIcons.solidCircleUser, color: Colors.black54),
-                iconPost: const Icon(Iconsax.arrow_right_3, color: Colors.black54),
+                icon: const Icon(
+                    FontAwesomeIcons.solidCircleUser, color: Colors.black54),
+                iconPost: const Icon(
+                    Iconsax.arrow_right_3, color: Colors.black54),
                 iconPostPadding: screenWidth * 0.423,
                 inWidget: const CustomText(
                   'User\'s Info',
@@ -285,14 +298,16 @@ class _SettingsState extends State<Settings> {
                 onTap: () {
                   if (user == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('No user is currently signed in.')),
+                      const SnackBar(
+                          content: Text('No user is currently signed in.')),
                     );
                     return;
                   }
                   if (userData == null) {
                     showDialog(
                       context: context,
-                      builder: (context) => const Center(
+                      builder: (context) =>
+                      const Center(
                         child: CircularProgressIndicator(),
                       ),
                     );
@@ -310,7 +325,8 @@ class _SettingsState extends State<Settings> {
                           topRight: Radius.circular(30),
                         ),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 25),
                           height: screenHeight * 0.9,
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -348,12 +364,14 @@ class _SettingsState extends State<Settings> {
                                           ? NetworkImage(user!.photoURL!)
                                           : null,
                                       child: user!.photoURL == null
-                                          ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                                          ? const Icon(Icons.person, size: 50,
+                                          color: Colors.grey)
                                           : null,
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      user!.displayName ?? "Unknown User", // user name from fire auth
+                                      user!.displayName ?? "Unknown User",
+                                      // user name from fire auth
                                       // userData!['name'] ?? "Unknown User", //user name from collection UsersInfo
                                       style: const TextStyle(
                                         fontSize: 22,
@@ -375,15 +393,19 @@ class _SettingsState extends State<Settings> {
                               ),
 
                               _infoTile(
-                                icon: Icons.phone_android_rounded,
-                                title: "Phone",
-                                value: userData!['phone'] ?? "Not Provided"
+                                  icon: Icons.phone_android_rounded,
+                                  title: "Phone",
+                                  value: userData!['phone'] ?? "Not Provided"
                               ),
 
                               _infoTile(
-                                icon: userData!['isPatient']! ? patientIcon : caregiverIcon,
+                                icon: userData!['isPatient']!
+                                    ? patientIcon
+                                    : caregiverIcon,
                                 title: "Current State",
-                                value: userData!['isPatient']! ? "Patient" : "Care Giver",
+                                value: userData!['isPatient']!
+                                    ? "Patient"
+                                    : "Care Giver",
                               ),
 
                               _infoTile(
@@ -391,7 +413,8 @@ class _SettingsState extends State<Settings> {
                                 title: "Join Date",
                                 value: userData!['createdAt'] != null
                                     ? DateFormat('dd/MM/yyyy').format(
-                                  (userData!['createdAt'] as Timestamp).toDate(),
+                                  (userData!['createdAt'] as Timestamp)
+                                      .toDate(),
                                 )
                                     : "Not Provided",
                               ),
@@ -405,7 +428,8 @@ class _SettingsState extends State<Settings> {
               ),
               ColorChangingContainer(
                 icon: const Icon(Iconsax.global, color: Colors.black54),
-                iconPost: const Icon(Iconsax.arrow_right_3, color: Colors.black54),
+                iconPost: const Icon(
+                    Iconsax.arrow_right_3, color: Colors.black54),
                 iconPostPadding: screenWidth * 0.423,
                 inWidget: const CustomText(
                   'Change language',
@@ -422,7 +446,8 @@ class _SettingsState extends State<Settings> {
                   try {
                     await _authService.signOut();
                     Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const WelcomeScreen()),
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -442,6 +467,23 @@ class _SettingsState extends State<Settings> {
               const SizedBox(height: 40),
               AnimatedButton(
                 onTap: () async {
+                  // safety check: user and email must exist
+                  if (user == null || user!.email == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Error: No user logged in")),
+                    );
+                    return;
+                  }
+
+                  // if user is patient delete Firestore patient data
+                  // else delete caregiver data.
+                  if (isPatient == true) {
+                    await _deleteAllPatientDataFromFirebase(
+                        context, user!.email!);
+                  } else {
+                    await _deleteAllCaregiverDataFromFirebase(
+                        context, user!.email!);
+                  }
                   await _deleteSharedData();
                   await _authService.deleteUser(context);
                 },
@@ -459,35 +501,6 @@ class _SettingsState extends State<Settings> {
       ),
     );
   }
-
-  Widget _userInfoRow(String title, String value) {
-    return Row(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(15.0),
-          child: Text(
-            '$title: ',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black45,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 Future<void> _deleteSharedData()async {
@@ -500,3 +513,176 @@ Future<void> _deleteSharedData()async {
   }
 }
 
+
+Future<void> _deleteAllPatientDataFromFirebase(BuildContext context,String patientEmail) async {
+  final firestore = FirebaseFirestore.instance;
+
+  // create ONE batch to ensure all deletions happen together which means all get deleted or none at all (batch is used for rollback logic)
+  // If any part fails, nothing is deleted.
+  final batch = firestore.batch();
+
+  try {
+    ///////////////////////////////////////////////////////////////////////
+    // delete patient from collection Friendship
+    // get the list of documents that match the query
+    final friendshipSnapshot = await firestore
+        .collection("Friendship")
+        .where("Patient", isEqualTo: patientEmail)
+        .get();
+
+    // loop through results and add "delete" operations to the batch
+    for (var doc in friendshipSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+    /// delete patient from LastAnalysis
+    // get the list of documents that match the query
+    final lastAnalysisSnapshot = await firestore
+        .collection("LastAnalysis")
+        .where("patient", isEqualTo: patientEmail)
+        .get();
+
+    // loop through results and add "delete" operations to the batch
+    for (var doc in lastAnalysisSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+    /// delete patient from Notify
+    // get the list of documents that match the query
+    final notifySnapshot = await firestore
+        .collection("Notify")
+        .where("patient", isEqualTo: patientEmail)
+        .get();
+
+    // loop through results and add "delete" operations to the batch
+    for (var doc in notifySnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+    /// delete patient from Reminders
+    // get the list of documents that match the query
+    final remindersSnapshot = await firestore
+        .collection("Reminders")
+        .where("patient", isEqualTo: patientEmail)
+        .get();
+
+    // loop through results and add "delete" operations to the batch
+    for (var doc in remindersSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+    /// delete patient from UsersInfo
+    final userInfoRef = firestore
+        .collection("UsersInfo")
+        .doc(patientEmail); // delete document when document id = patient email
+
+    batch.delete(userInfoRef);
+
+    ///////////////////////////////////////////////////////////////////////
+    /// delete patient from locations
+    final locationRef = firestore
+        .collection("locations")
+        .doc(patientEmail); // delete document when document id = patient email
+
+    batch.delete(locationRef);
+
+    // commit all deletions at once
+    // batch has a rollback either all gets deleted all none get deleted
+    await batch.commit();
+
+    if (kDebugMode) {
+      print("Successfully deleted all data for $patientEmail");
+    }
+
+  } catch (e) {
+    if (kDebugMode) {
+      print("Error deleting patient data: $e");
+      // check if the widget is still on screen before showing Snackbar
+      if (!context.mounted) return;
+
+      // Show Error Snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error deleting data: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
+
+Future<void> _deleteAllCaregiverDataFromFirebase(BuildContext context, String caregiverEmail) async {
+  final firestore = FirebaseFirestore.instance;
+
+  // create ONE batch to ensure all deletions happen together which means all get deleted or none at all (batch is used for rollback logic)
+  // if any part fails, nothing is deleted.
+  final batch = firestore.batch();
+
+  try {
+    // ---------------------------------------------------------
+    // 1. Remove ONLY the caregiver's email from the "Caregivers" array don't delete document or field
+    // ---------------------------------------------------------
+    final friendshipSnapshot = await firestore
+        .collection("Friendship")
+        .where("Caregivers", arrayContains: caregiverEmail)
+        .get();
+
+    for (var doc in friendshipSnapshot.docs) {
+      // batch.update does NOT replace the document.
+      // FieldValue.arrayRemove does NOT delete the array field.
+      // It simply removes the item 'caregiverEmail' from the list.
+      // ex: ["mom@test.com", "you@test.com"] -> becomes -> ["mom@test.com"]
+      batch.update(doc.reference, {
+        "Caregivers": FieldValue.arrayRemove([caregiverEmail])
+      });
+    }
+
+    // ---------------------------------------------------------
+    // 2. Remove Caregiver from "Notify" Collection, delete caregiver email from array don't delete document or field
+    // ---------------------------------------------------------
+    final notifySnapshot = await firestore
+        .collection("Notify")
+        .where("caregivers", arrayContains: caregiverEmail)
+        .get();
+
+    for (var doc in notifySnapshot.docs) {
+      // remove ONLY this email from the array
+      batch.update(doc.reference, {
+        "caregivers": FieldValue.arrayRemove([caregiverEmail])
+      });
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+    /// delete caregiver document from UsersInfo
+    final userInfoRef = firestore
+        .collection("UsersInfo")
+        .doc(caregiverEmail); // delete document when document id = patient email
+
+    batch.delete(userInfoRef);
+
+    // commit all deletions at once
+    // batch has a rollback either all gets deleted all none get deleted
+    await batch.commit();
+
+    if (kDebugMode) {
+      print("Successfully deleted all data for $caregiverEmail");
+    }
+
+  } catch (e) {
+    if (kDebugMode) {
+      print("Error deleting patient data: $e");
+      // check if the widget is still on screen before showing Snackbar
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error deleting data: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
