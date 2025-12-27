@@ -34,40 +34,47 @@ class _Question3ScreenState extends State<Question3Screen> {
     super.dispose();
   }
 
-  // --- UPDATED FUNCTION ---
   Future<void> createUserInfo({
-    required String uid, // Added UID
+    required String uid,
     required String name,
     required String phone,
     required String email,
     required bool isPatient,
   }) async {
+    String? token;
+
+    // 1. Try to get the token safely. If it fails, we just continue with null.
     try {
-      // 1. Get the FCM Device Token
-      String? token = await FirebaseMessaging.instance.getToken();
+      token = await FirebaseMessaging.instance.getToken();
+    } catch (e) {
+      if (kDebugMode) {
+        print("Warning: Could not get FCM token. Continuing without it. Error: $e");
+      }
+    }
 
-      // 2. Reference the collection
-      CollectionReference usersCollection =
-      FirebaseFirestore.instance.collection("UsersInfo");
+    // 2. Reference the collection
+    CollectionReference usersCollection =
+    FirebaseFirestore.instance.collection("UsersInfo");
 
-      // 3. Save Data using Email as the Document ID
+    // 3. Save Data (This will now run even if token failed)
+    // We rethrow the error here so the 'onPressed' knows if the SAVE failed.
+    try {
       await usersCollection.doc(email).set({
         'uid': uid,
         'name': name,
         'phone': phone,
         'email': email,
         'isPatient': isPatient,
-        'fcm_token': token, // <--- SAVING TOKEN
+        'fcm_token': token, // might be null, which is fine
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (kDebugMode) {
-        print("User document created successfully with Token $token");
+        print("User document created successfully");
       }
     } catch (e) {
-      if (kDebugMode) {
-        print("Error creating user document: $e");
-      }
+      // Rethrow the error so the UI knows to show a SnackBar or stop navigation
+      throw Exception("Database write failed: $e");
     }
   }
 
@@ -167,27 +174,28 @@ class _Question3ScreenState extends State<Question3Screen> {
                   String? nameShared = prefs.getString('user_name');
 
                   try {
-                    // Call the updated function
                     await createUserInfo(
-                      uid: _currentUser!.uid, // Pass UID
+                      uid: _currentUser!.uid,
                       name: nameShared ?? "",
                       phone: phoneShared ?? "",
                       isPatient: intToBool(choice ?? 0),
                       email: _email!,
                     );
 
+                    // ONLY clear prefs and navigate if the above line succeeded
                     if (kDebugMode) print("User document created successfully!");
 
-                    // Clear shared preferences
                     await prefs.clear();
 
-                    // Navigate
                     if (!mounted) return;
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(builder: (_) => const MyNavBar()),
                     );
+
                   } catch (e) {
-                    if (kDebugMode) print("Error creating user document: $e");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Save failed: $e"), backgroundColor: Colors.red),
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(

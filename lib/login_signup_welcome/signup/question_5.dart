@@ -33,14 +33,13 @@ class _Question5ScreenState extends State<Question5Screen> {
 
   void _validatePasswords() {
     setState(() {
-      _isValid =
-          _passwordController.text.isNotEmpty &&
-              _confirmPasswordController.text.isNotEmpty &&
-              _passwordController.text == _confirmPasswordController.text;
+      _isValid = _passwordController.text.isNotEmpty &&
+          _confirmPasswordController.text.isNotEmpty &&
+          _passwordController.text == _confirmPasswordController.text;
     });
   }
 
-  Future<User?> signUpWithEmail(String email, String password) async {
+  Future<User?> signUpWithEmail(BuildContext context, String email, String password) async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
@@ -52,33 +51,51 @@ class _Question5ScreenState extends State<Question5Screen> {
       if (kDebugMode) {
         print("Signup error: ${e.code}");
       }
+      // Show error to user
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Sign Up Failed: ${e.message}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return null;
     }
   }
 
+  // --- UPDATED ROBUST FUNCTION ---
   Future<void> createUserInfo({
     required String name,
     required String phone,
     required String email,
     required bool isPatient,
-    required String uid, // Added UID to parameters for complete data
+    required String uid,
   }) async {
+    String? token;
+
+    // 1. Try to get the token safely. If it fails, we continue with null.
     try {
-      // 1. Get the FCM Device Token
-      String? token = await FirebaseMessaging.instance.getToken();
+      token = await FirebaseMessaging.instance.getToken();
+    } catch (e) {
+      if (kDebugMode) {
+        print("Warning: Could not get FCM token. Continuing without it. Error: $e");
+      }
+    }
 
-      // 2. Reference the collection
-      CollectionReference usersCollection =
-      FirebaseFirestore.instance.collection("UsersInfo");
+    // 2. Reference the collection
+    CollectionReference usersCollection =
+    FirebaseFirestore.instance.collection("UsersInfo");
 
-      // 3. Save Data using Email as the Document ID
+    // 3. Save Data (Rethrows error if it fails so UI knows)
+    try {
       await usersCollection.doc(email).set({
         'uid': uid,
         'name': name,
         'phone': phone,
         'email': email,
         'isPatient': isPatient,
-        'fcm_token': token, // <--- SAVING THE TOKEN HERE to send notifications serverless to phone
+        'fcm_token': token, // might be null, which is fine
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -86,9 +103,8 @@ class _Question5ScreenState extends State<Question5Screen> {
         print("User document created successfully with Token: $token");
       }
     } catch (e) {
-      if (kDebugMode) {
-        print("Error creating user document: $e");
-      }
+      // Rethrow so the button logic knows to stop
+      throw Exception("Database write failed: $e");
     }
   }
 
@@ -204,23 +220,26 @@ class _Question5ScreenState extends State<Question5Screen> {
               ElevatedButton(
                 onPressed: _isValid
                     ? () async {
-                  if (kDebugMode) print("Password confirmed!");
-
                   // 1. Load shared ref data
                   final prefs = await SharedPreferences.getInstance();
                   String? emailShared = prefs.getString('user_email');
-                  if (emailShared == null) return;
+                  if (emailShared == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Error: Email missing from session")),
+                    );
+                    return;
+                  }
 
                   // 2. Create Auth User
+                  // Passing context to show SnackBar on failure
                   final user = await signUpWithEmail(
+                    context,
                     emailShared,
                     _confirmPasswordController.text.trim(),
                   );
 
-                  if (user == null) {
-                    if (kDebugMode) print("Failed to create account");
-                    return;
-                  }
+                  // If auth failed, stop here
+                  if (user == null) return;
 
                   if (kDebugMode) print("User created: ${user.email}");
 
@@ -231,25 +250,34 @@ class _Question5ScreenState extends State<Question5Screen> {
 
                   try {
                     await createUserInfo(
-                      uid: user.uid, // Pass the new UID
+                      uid: user.uid,
                       name: nameShared ?? "",
                       phone: phoneShared ?? "",
                       email: emailShared,
                       isPatient: intToBool(choice ?? 0),
                     );
 
+                    // 4. Success! Clear prefs and Navigate
                     if (kDebugMode) print("User document created successfully!");
-
-                    // 4. Clear shared preferences
                     await prefs.clear();
 
-                    // 5. Navigate
                     if (!mounted) return;
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(builder: (_) => const MyNavBar()),
                     );
+
                   } catch (e) {
+                    // 5. Handle Database Failure
                     if (kDebugMode) print("Error creating user document: $e");
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Account created, but database failed: $e"),
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 4),
+                        ),
+                      );
+                    }
                   }
                 }
                     : null,
