@@ -17,7 +17,7 @@ class _BugReportPageState extends State<BugReportPage> {
   User? user = FirebaseAuth.instance.currentUser;
   late final TextEditingController _textController;
 
-  // State variables for image and loading status
+  // define variables for image and loading status
   File? _selectedImage;
   bool _isUploading = false;
 
@@ -26,7 +26,7 @@ class _BugReportPageState extends State<BugReportPage> {
     super.initState();
     _textController = TextEditingController(
       text:
-      "Hello, I am writing to report an issue I encountered within your app. It is not working properly.\n\nWhen I click it nothing is happening. I am attaching a link with a highlighted spot.",
+          "Hello, I am writing to report an issue I encountered within your app. It is not working properly.\n\nWhen I click it nothing is happening. I am attaching a link with a highlighted spot.",
     );
   }
 
@@ -36,7 +36,7 @@ class _BugReportPageState extends State<BugReportPage> {
     super.dispose();
   }
 
-  // --- 1. Function to Pick Image ---
+  // --- function to pick image ---
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -48,7 +48,7 @@ class _BugReportPageState extends State<BugReportPage> {
     }
   }
 
-  // --- 2. Function to Upload Data to Firebase ---
+  // --- function to upload data to Firebase ---
   Future<void> _submitReport() async {
     if (_textController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -62,17 +62,18 @@ class _BugReportPageState extends State<BugReportPage> {
     try {
       String? imageUrl;
 
-      // A. Upload Image to Storage (if selected)
+      // A. upload image to storage (if selected)
       if (_selectedImage != null) {
         final String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final Reference storageRef =
-        FirebaseStorage.instance.ref().child('bug_reports/$fileName');
+        final Reference storageRef = FirebaseStorage.instance.ref().child(
+          'bug_reports/$fileName',
+        );
 
         await storageRef.putFile(_selectedImage!);
         imageUrl = await storageRef.getDownloadURL();
       }
 
-      // B. Save Report to Firestore
+      // B. save report to Firestore
       await FirebaseFirestore.instance.collection('ReportBug').add({
         'uid': user?.uid ?? 'guest',
         'email': user?.email ?? 'anonymous',
@@ -89,9 +90,9 @@ class _BugReportPageState extends State<BugReportPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
         if (kDebugMode) {
           print("error occurred $e");
         }
@@ -115,7 +116,9 @@ class _BugReportPageState extends State<BugReportPage> {
               child: IntrinsicHeight(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0, vertical: 16.0),
+                    horizontal: 24.0,
+                    vertical: 16.0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -126,7 +129,10 @@ class _BugReportPageState extends State<BugReportPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.black),
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.black,
+                            ),
                             onPressed: () => Navigator.pop(context),
                           ),
                           Container(
@@ -140,14 +146,18 @@ class _BugReportPageState extends State<BugReportPage> {
                               child: CircleAvatar(
                                 radius: 45,
                                 backgroundColor: Colors.white,
-                                backgroundImage: (user != null && user!.photoURL != null)
+                                backgroundImage:
+                                    (user != null && user!.photoURL != null)
                                     ? NetworkImage(user!.photoURL!)
                                     : null,
                                 child: (user == null || user!.photoURL == null)
-                                    ? const Text("R",
-                                    style: TextStyle(
-                                        color: Colors.purple,
-                                        fontWeight: FontWeight.bold))
+                                    ? const Text(
+                                        "R",
+                                        style: TextStyle(
+                                          color: Colors.purple,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
                                     : null,
                               ),
                             ),
@@ -217,26 +227,23 @@ class _BugReportPageState extends State<BugReportPage> {
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.grey[400]!),
                             ),
-                            // Logic: Show Image if picked, otherwise show Icon
+                            // show image if picked, otherwise show Icon
                             child: _selectedImage != null
-                                ? Image.file(
-                              _selectedImage!,
-                              fit: BoxFit.cover,
-                            )
+                                ? Image.file(_selectedImage!, fit: BoxFit.cover)
                                 : const Center(
-                              child: Icon(
-                                Icons.image,
-                                color: Colors.white,
-                                size: 30,
-                              ),
-                            ),
+                                    child: Icon(
+                                      Icons.image,
+                                      color: Colors.white,
+                                      size: 30,
+                                    ),
+                                  ),
                           ),
                           const SizedBox(width: 16),
 
-                          // "Attach image" Button (Clickable)
+                          // "Attach image" Button
                           Expanded(
                             child: InkWell(
-                              onTap: _pickImage, // Trigger Image Picker
+                              onTap: _pickImage, // trigger image picker
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
                                 height: 60,
@@ -271,12 +278,14 @@ class _BugReportPageState extends State<BugReportPage> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: ElevatedButton(
-                          // Disable button while uploading
+                          // disable button while uploading
                           onPressed: _isUploading ? null : _submitReport,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.purple,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 32, vertical: 16),
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -284,26 +293,31 @@ class _BugReportPageState extends State<BugReportPage> {
                           ),
                           child: _isUploading
                               ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Text(
-                                "Send",
-                                style: TextStyle(
-                                    fontSize: 16, color: Colors.white),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(Icons.send,
-                                  color: Colors.white, size: 20),
-                            ],
-                          ),
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Text(
+                                      "Send",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Icon(
+                                      Icons.send,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ],
+                                ),
                         ),
                       ),
                       const SizedBox(height: 20),

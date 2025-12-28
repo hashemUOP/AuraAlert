@@ -598,7 +598,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
             const SizedBox(height: 16),
             _buildInfoRow(
               'Time of last analysis:',
-              analysisTime.toString() ?? "-",
+              analysisTime ?? "-",
             ),
             const Divider(height: 24),
             _buildInfoRow('Result:', result ?? "-"),

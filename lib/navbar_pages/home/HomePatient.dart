@@ -126,7 +126,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
 
       final streamed = await request.send();
 
-      // Switch to processing state
+      // switch to processing state
       setState(() {
         uploadingLoading = false;
       });
@@ -159,8 +159,22 @@ class _HomePagePatientState extends State<HomePagePatient> {
         );
       }
 
-      // delay 1 seconds so user can read "All done!"
-      await Future.delayed(const Duration(seconds: 1));
+      // send emergency notifications to all caregivers of patient
+      if (patientEmail != null) {
+        if (responseData['seizure_alert'] == true || responseData['result'] == "At Risk") {
+
+          // get the list of caregiver emails
+          List<String> caregiverEmails = await _listOfPatientCaregivers(patientEmail!);
+
+          // trigger the Cloud Function (Only if we have caregivers to notify)
+          if (caregiverEmails.isNotEmpty) {
+            await _sendPushNotification(patientEmail!, caregiverEmails);
+          }
+        }
+      }
+
+      // delay 2 seconds so user can read "All done!"
+      await Future.delayed(const Duration(seconds: 2));
 
       if (mounted) {
         setState(() {
@@ -184,7 +198,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
 
-    // Helper boolean to check if we should show the overlay
+    // helper boolean to check if we should show the overlay
     bool showOverlay = uploadingLoading || isSuccess;
 
     return Scaffold(
@@ -366,10 +380,10 @@ class _HomePagePatientState extends State<HomePagePatient> {
     // Default map with "empty" values
     final Map<String, dynamic> defaultData = {
       'ai_detected': '-',
-      'analysis_time': null, // Kept null so UI can check before formatting
+      'analysis_time': '-',
       'confidence': '-',
       'result': '-',
-      'seizure_alert': false, // Boolean default
+      'seizure_alert': false,
     };
 
     try {
@@ -569,15 +583,15 @@ class _HomePagePatientState extends State<HomePagePatient> {
             borderRadius: BorderRadius.circular(15),
             color: Colors.grey.shade100,
           ),
-          child: Container(
+          child: SizedBox(
             width: 250,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 const Icon(Icons.person, color: Colors.purple, size: 24.0),
-        
+
                 const SizedBox(width: 10),
-        
+
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -594,9 +608,9 @@ class _HomePagePatientState extends State<HomePagePatient> {
                     ],
                   ),
                 ),
-        
+
                 const SizedBox(width: 5),
-        
+
                 Container(
                   width: 100,
                   child: Row(
@@ -664,14 +678,14 @@ class _HomePagePatientState extends State<HomePagePatient> {
         } else {
           _currentStatus = PatientStatus.stable;
         }
+
       });
     }
   }
 
-  // --- DATA LOGIC ---
   Future<List<String>> _getPendingRequests(String patientEmail) async {
     try {
-      // FIX: Query where Receiver is ME (the patient)
+      //query where Receiver is the patient
       final querySnapshot = await FirebaseFirestore.instance
           .collection('PendingRequests')
           .where('Receiver', isEqualTo: patientEmail)
@@ -746,7 +760,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
     }
   }
 
-  // --- UNCHANGED WIDGETS ---
 
   Widget _buildLastAnalysisCard() {
     return Card(
@@ -923,4 +936,64 @@ class CurveClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+                  /// notification helper functions
+Future<List<String>> _listOfPatientCaregivers(String patientEmail) async {
+  try {
+    // 1. await the query to get the actual data
+    final QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection("Friendship")
+        .where("Patient", isEqualTo: patientEmail)
+        .get();
+
+    // 2. check if any documents were found
+    if (snapshot.docs.isNotEmpty) {
+      // 3. get the data from the first matching document
+      final data = snapshot.docs.first.data() as Map<String, dynamic>;
+
+      // 4. extract the 'Caregivers' field and safely cast it to List<String>
+      if (data.containsKey('Caregivers') && data['Caregivers'] is List) {
+        return List<String>.from(data['Caregivers']);
+      }
+    }
+
+    // return empty list if no doc found or field is missing
+    return [];
+
+  } catch (e) {
+    if (kDebugMode) {
+      print("An error occurred fetching caregivers emails: $e");
+    }
+    return [];
+  }
+}
+
+// Write to 'Notify' collection so Cloud Function picks it up
+Future<void> _sendPushNotification(String patientEmail, List<String> caregivers) async {
+  try {
+    // Reference the 'Notify' document specifically for this patient.
+    // We use the patientEmail as the Document ID so it's easy to find.
+    final DocumentReference notifyDoc = FirebaseFirestore.instance
+        .collection('Notify')
+        .doc(patientEmail);
+
+    // Write the data that the Cloud Function expects.
+    // We use SetOptions(merge: true) to avoid overwriting other fields if they exist.
+    await notifyDoc.set({
+      'patient': patientEmail,
+      'caregivers': caregivers, // The function reads this array
+      'notify': true,           // THIS is the trigger key
+      'timestamp': FieldValue.serverTimestamp(), // Optional: ensures the doc changes even if data is identical
+    }, SetOptions(merge: true));
+
+    if (kDebugMode) {
+      print("Alert trigger sent to Cloud Function for $patientEmail");
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print("Error triggering notification: $e");
+    }
+  }
 }
