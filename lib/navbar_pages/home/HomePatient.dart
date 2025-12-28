@@ -112,7 +112,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
     try {
       ///update ip address with new copied ip address from cmd ipconfig
       /// both laptop and physical devices must be connected to the same LAN
-      final uri = Uri.parse('http://192.168.100.60:8000/api/data/predict/');
+      final uri = Uri.parse('http://192.168.0.2:8000/api/data/predict/');
       final request = http.MultipartRequest('POST', uri)
         ..files.add(
           http.MultipartFile.fromBytes(
@@ -132,7 +132,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
       });
 
       final resp = await http.Response.fromStream(streamed);
-
 
       // the resp body must be converted for it's to be accessed
       final Map<String, dynamic> responseData = jsonDecode(resp.body);
@@ -299,16 +298,16 @@ class _HomePagePatientState extends State<HomePagePatient> {
   }
 
   Future<void> _createOrUpdatePatientLastResult(
-      String aiDetected,
-      String analysisTime,
-      String confidence,
-      String result,
-      String patientEmail,
-      bool seizureAlert,
-      ) async {
+    String aiDetected,
+    String analysisTime,
+    String confidence,
+    String result,
+    String patientEmail,
+    bool seizureAlert,
+  ) async {
     try {
-      final CollectionReference collection =
-      FirebaseFirestore.instance.collection('LastAnalysis');
+      final CollectionReference collection = FirebaseFirestore.instance
+          .collection('LastAnalysis');
 
       // 1. Check if user has previous results
       final QuerySnapshot querySnapshot = await collection
@@ -330,7 +329,8 @@ class _HomePagePatientState extends State<HomePagePatient> {
         // UPDATE existing document
         final DocumentReference docRef = querySnapshot.docs.first.reference;
         await docRef.update(data);
-        if (kDebugMode) print("Existing analysis record updated for $patientEmail");
+        if (kDebugMode)
+          print("Existing analysis record updated for $patientEmail");
       } else {
         // CREATE new document
         await collection.add(data);
@@ -359,7 +359,10 @@ class _HomePagePatientState extends State<HomePagePatient> {
       if (kDebugMode) print("Error updating LastAnalysis: $e");
     }
   }
-  Future<Map<String, dynamic>> _getPatientLastTestResult(String patientEmail) async {
+
+  Future<Map<String, dynamic>> _getPatientLastTestResult(
+    String patientEmail,
+  ) async {
     // Default map with "empty" values
     final Map<String, dynamic> defaultData = {
       'ai_detected': '-',
@@ -389,7 +392,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
       return defaultData;
     }
   }
-
 
   Widget _buildHeader() {
     return ClipPath(
@@ -517,7 +519,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
     double screenWidth = MediaQuery.of(context).size.width;
     return SingleChildScrollView(
       child: Column(
-        mainAxisSize: MainAxisSize.min, // Important for dialogs
+        mainAxisSize: MainAxisSize.min,
         children: [
           Align(
             alignment: AlignmentGeometry.topLeft,
@@ -554,67 +556,83 @@ class _HomePagePatientState extends State<HomePagePatient> {
 
   // Updated to accept setState to refresh the dialog
   Widget _requestRow(
-    String caregiverEmail,
-    double screenWidth,
-    StateSetter setState,
-  ) {
+      String caregiverEmail,
+      double screenWidth,
+      StateSetter setState,
+      ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Container(
-        height: 70,
-        width: screenWidth * 0.99,
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          color: Colors.grey.shade100,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
+      child: Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            color: Colors.grey.shade100,
+          ),
+          child: Container(
+            width: 250,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                const Icon(Icons.person, color: Colors.purple, size: 34.0),
+                const Icon(Icons.person, color: Colors.purple, size: 24.0),
+        
                 const SizedBox(width: 10),
-                SizedBox(
-                  width: 100, // Limit width so email doesn't overflow
+        
+                Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         caregiverEmail,
-                        style: const TextStyle(fontSize: 14),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
+                      // Assuming CustomText is a widget you defined elsewhere
                       const CustomText("Caregiver", fromLeft: 0, fontSize: 11),
+                    ],
+                  ),
+                ),
+        
+                const SizedBox(width: 5),
+        
+                Container(
+                  width: 100,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min, // CRITICAL: Shrinks row to fit content
+                    children: [
+                      // Reject Button
+                      IconButton(
+                        padding: EdgeInsets.zero, // Removes internal padding
+                        constraints: const BoxConstraints(), // Removes default 48px size
+                        icon: const Icon(Icons.close, color: Colors.red, size: 25),
+                        onPressed: () async {
+                          await _rejectPendingRequest(patientEmail!, caregiverEmail);
+                          setState(() {});
+                        },
+                      ),
+                      // Accept Button
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: const Icon(Icons.check, color: Colors.purple, size: 25),
+                        onPressed: () async {
+                          await _acceptPendingRequest(patientEmail!, caregiverEmail);
+                          setState(() {});
+                        },
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.red, size: 30),
-                  onPressed: () async {
-                    await _rejectPendingRequest(patientEmail!, caregiverEmail);
-                    setState(() {}); // Refresh the dialog UI
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.check, color: Colors.purple, size: 30),
-                  onPressed: () async {
-                    await _acceptPendingRequest(patientEmail!, caregiverEmail);
-                    setState(() {}); // Refresh the dialog UI
-                  },
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+
   Future<void> _loadPatientLastResult() async {
     if (patientEmail == null) return;
 
@@ -751,9 +769,9 @@ class _HomePagePatientState extends State<HomePagePatient> {
             const SizedBox(height: 16),
             _buildInfoRow('Time of last analysis:', analysisTime.toString()),
             const Divider(height: 24),
-            _buildInfoRow('Result:', result ??"-"),
+            _buildInfoRow('Result:', result ?? "-"),
             const Divider(height: 24),
-            _buildInfoRow('Confidence:',confidence ?? "-"),
+            _buildInfoRow('Confidence:', confidence ?? "-"),
             const Divider(height: 24),
             _buildInfoRow('AI detected:', aiDetected ?? "-"),
           ],

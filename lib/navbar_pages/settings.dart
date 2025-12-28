@@ -1,4 +1,5 @@
 import 'package:aura_alert/login_signup_welcome/screens/welcome_screen.dart';
+import 'package:aura_alert/navbar_pages/settings/bug_report.dart';
 import 'package:aura_alert/navbar_pages/settings/caregiver_list.dart';
 import 'package:aura_alert/navbar_pages/settings/patient_list.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -201,7 +202,12 @@ class _SettingsState extends State<Settings> {
                   fontSize: 15,
                   fontWeight: FontWeight.w400,
                 ),
-              ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BugReportPage(),
+                  ),
+                ),              ),
               isPatient == null ?
               const SizedBox.shrink() // show nothing if isPatient is null
                   : isPatient == true ? //show  ColorChangingContainer
@@ -686,3 +692,4 @@ Future<void> _deleteAllCaregiverDataFromFirebase(BuildContext context, String ca
     }
   }
 }
+

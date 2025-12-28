@@ -39,6 +39,7 @@ class CustomText extends StatelessWidget {
           color: color ?? Colors.black,
           decoration: decoration ?? TextDecoration.none,
         ),
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

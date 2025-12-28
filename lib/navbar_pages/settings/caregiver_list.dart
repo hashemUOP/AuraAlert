@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:aura_alert/global_widgets/custom_text.dart'; // Adjust path if needed
+import 'package:aura_alert/global_widgets/custom_text.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -16,19 +16,33 @@ class _CaregiverListState extends State<CaregiverList> {
   String _searchQuery = "";
   String? currentCaregiverEmail;
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  //declare the stream here so it persists across rebuilds
+  late Stream<QuerySnapshot> _friendshipStream;
 
   @override
   void initState() {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
+
     if (user != null) {
       currentCaregiverEmail = user.email;
+
+      // initialize the stream ONCE here.
+      // this prevents the StreamBuilder from restarting when you type in the search bar.
+      _friendshipStream = FirebaseFirestore.instance
+          .collection('Friendship')
+          .where('Caregivers', arrayContains: currentCaregiverEmail)
+          .snapshots();
+    } else {
+      // fallback if user is logged out (shouldn't happen in this screen)
+      _friendshipStream = const Stream.empty();
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -37,10 +51,7 @@ class _CaregiverListState extends State<CaregiverList> {
 
     // 1. ROOT STREAM: Listen to my current relationships
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('Friendship')
-          .where('Caregivers', arrayContains: currentCaregiverEmail)
-          .snapshots(),
+      stream: _friendshipStream, // FIX: Use the initialized variable
       builder: (context, snapshot) {
 
         // Handle Loading
@@ -168,7 +179,7 @@ class _CaregiverListState extends State<CaregiverList> {
           .collection('UsersInfo')
           .where('isPatient', isEqualTo: true)
           .where('email', isGreaterThanOrEqualTo: _searchQuery)
-          .where('email', isLessThan: _searchQuery + 'z')
+          .where('email', isLessThan: '$_searchQuery\uf8ff') // Optimized query
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -176,7 +187,13 @@ class _CaregiverListState extends State<CaregiverList> {
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Padding(
+            padding: EdgeInsets.all(20.0),
+            child: SizedBox(
+              height: 20, width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
         }
 
         // We don't need to filter existing patients here because
@@ -246,7 +263,7 @@ class _CaregiverListState extends State<CaregiverList> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CustomText(targetPatientEmail, fromLeft: 0, fontSize: 16),
+                    CustomText(targetPatientEmail, fromLeft: 0, fontSize: 16,),
                     CustomText("Patient", fromLeft: 0, fontSize: 11),
                   ],
                 ),
@@ -420,18 +437,24 @@ class _CaregiverListState extends State<CaregiverList> {
         await docRef.update({
           'Caregivers': FieldValue.arrayRemove([myselfEmail])
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Patient removed successfully'), backgroundColor: Colors.purple),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Patient removed successfully'), backgroundColor: Colors.purple),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: Relationship not found')),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Relationship not found')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error removing patient: $e'), backgroundColor: Colors.red),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error removing patient: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 }

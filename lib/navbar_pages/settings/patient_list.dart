@@ -361,41 +361,50 @@ class _PatientListState extends State<PatientList> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // --- 1. User Info Section ---
-            Row(
-              children: [
-                const Icon(
-                  Icons.person,
-                  color: Colors.purple,
-                  size: 34.0,
-                ),
-                const SizedBox(width: 20),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText(userEmail, fromLeft: 0, fontSize: 16),
-                    CustomText("Caregiver", fromLeft: 0, fontSize: 11),
-                  ],
-                ),
-              ],
+            // --- 1. User Info Section (Wrapped in Expanded) ---
+            Expanded(
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.person,
+                    color: Colors.purple,
+                    size: 34.0,
+                  ),
+                  const SizedBox(width: 20),
+
+                  // Wrap the Column in Expanded so text truncates properly
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          userEmail,
+                          maxLines: 1, // Ensures it stays on one line
+                          style: const TextStyle(fontSize: 16),
+                          overflow: TextOverflow.ellipsis, // Adds "..."
+                        ),
+                        CustomText("Caregiver", fromLeft: 0, fontSize: 11),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             // --- 2. Dynamic Action Section (StreamBuilder) ---
+            // This stays outside the Expanded widget so it always has space
             StreamBuilder<QuerySnapshot>(
-              // Listen for any pending request between these specific users
               stream: FirebaseFirestore.instance
                   .collection('PendingRequests')
                   .where('Sender', isEqualTo: patientEmail)
                   .where('Receiver', isEqualTo: userEmail)
                   .snapshots(),
               builder: (context, snapshot) {
-                // A. Check if data is loading (optional, keeps UI jump-free)
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const SizedBox(width: 30, height: 30);
                 }
 
-                // B. Check if a request ALREADY exists
                 if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
                   return const Padding(
                     padding: EdgeInsets.only(right: 8.0),
@@ -410,7 +419,6 @@ class _PatientListState extends State<PatientList> {
                   );
                 }
 
-                // C. If NO request exists, show the Add button
                 return GestureDetector(
                   onTap: () async {
                     try {

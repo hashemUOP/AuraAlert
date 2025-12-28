@@ -278,7 +278,7 @@ class _CreateReminderState extends State<CreateReminder> {
                               context: context,
                               builder: (BuildContext context) {
                                 return SizedBox(
-                                  height: screenHeight * 0.3,
+                                  height: screenHeight * 0.4,
                                   child: Column(
                                     children: [
                                       const SizedBox(height: 20),
