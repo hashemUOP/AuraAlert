@@ -27,6 +27,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   String? result;
   String? patientEmail;
   bool? seizureAlert;
+  bool? doesCaregiverHasFriend;
 
   // List to track pending requests for the red dot notification
   List<String> _pendingRequestsList = [];
@@ -48,21 +49,28 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
         print("Current Caregiver Email initialized: $caregiverEmail");
       }
 
-      // 1. Load pending requests (Independant)
+      // 1. Load pending requests
       _refreshPendingRequests();
 
-      // 2. CRITICAL: Get Patient Email FIRST
-      // We must await this because the next step depends on it
+      // 2. Get Patient Email
       String? foundPatientEmail = await _getPatientEmail();
 
-      // 3. Update state with the patient email
-      if (foundPatientEmail != null) {
+      // 3. Update state based on finding the patient
+      if (mounted) {
         setState(() {
-          patientEmail = foundPatientEmail;
-        });
+          if (foundPatientEmail != null) {
+            // SUCCESS: We found a patient!
+            patientEmail = foundPatientEmail;
+            doesCaregiverHasFriend = true;
 
-        // 4. NOW it is safe to load the test results
-        await _loadPatientLastResult();
+            // Now load the results
+            _loadPatientLastResult();
+          } else {
+            // FAILURE: No patient found
+            patientEmail = null;
+            doesCaregiverHasFriend = false;
+          }
+        });
       }
     }
   }
@@ -73,9 +81,9 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('Friendship')
           .where(
-            'Caregivers',
-            arrayContains: caregiverEmail,
-          ) // search the array field for caregiver email
+        'Caregivers',
+        arrayContains: caregiverEmail,
+      ) // search the array field for caregiver email
           .limit(1)
           .get();
 
@@ -107,6 +115,25 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
           _pendingRequestsList = reqs;
         });
       }
+    }
+  }
+
+
+  Future<bool> _doesCaregiverHavePatient(String emailToCheck) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection("Friendship")
+          .where("Caregivers", arrayContains: emailToCheck)
+          .limit(1) // stop searching as soon as we find one match
+          .get();
+
+      // if found at least one document, return true
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error checking array field: $e");
+      }
+      return false;
     }
   }
 
@@ -254,7 +281,10 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   // --- NOTIFICATION DIALOG LOGIC ---
 
   Widget _notificationDialogueBody(BuildContext context, StateSetter setState) {
-    double screenWidth = MediaQuery.of(context).size.width;
+    double screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -291,11 +321,9 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
     );
   }
 
-  Widget _requestRow(
-      String patientRequestEmail,
+  Widget _requestRow(String patientRequestEmail,
       double screenWidth,
-      StateSetter setState,
-      ) {
+      StateSetter setState,) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Container(
@@ -323,7 +351,8 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
                     patientRequestEmail,
                     style: const TextStyle(fontSize: 14),
                     maxLines: 1, // ensure single line
-                    overflow: TextOverflow.ellipsis, // Adds "..." if email is too long
+                    overflow: TextOverflow
+                        .ellipsis, // Adds "..." if email is too long
                   ),
                   const CustomText("Patient", fromLeft: 0, fontSize: 11),
                 ],
@@ -365,8 +394,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   // --- DATA OPERATIONS ---
 
   Future<Map<String, dynamic>> _getPatientLastTestResult(
-    String patientEmail,
-  ) async {
+      String patientEmail,) async {
     // Default map with "empty" values
     final Map<String, dynamic> defaultData = {
       'ai_detected': '-',
@@ -442,9 +470,9 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
 
       final senderEmails = querySnapshot.docs
           .map((doc) {
-            final data = doc.data();
-            return data['Sender'] as String? ?? '';
-          })
+        final data = doc.data();
+        return data['Sender'] as String? ?? '';
+      })
           .where((email) => email.isNotEmpty)
           .toList();
 
@@ -456,10 +484,8 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   }
 
   // Reject: Delete request where Sender=Patient and Receiver=Me
-  Future<void> _rejectPendingRequest(
-    String patientSenderEmail,
-    String meReceiverEmail,
-  ) async {
+  Future<void> _rejectPendingRequest(String patientSenderEmail,
+      String meReceiverEmail,) async {
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('PendingRequests')
@@ -477,10 +503,8 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   }
 
   // Accept: Add ME to Patient's Friendship document
-  Future<void> _acceptPendingRequest(
-    String patientSenderEmail,
-    String meReceiverEmail,
-  ) async {
+  Future<void> _acceptPendingRequest(String patientSenderEmail,
+      String meReceiverEmail,) async {
     final firestore = FirebaseFirestore.instance;
     try {
       // 1. Find Friendship doc for the PATIENT
@@ -629,11 +653,14 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   }
 
   Widget _buildLocationCard(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
+    double screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
 
-    // null safety check
-    // if user (patient) still not loaded  show a loading spinner
-    if (patientEmail == null) {
+    // 1. LOADING STATE
+    // If null, we haven't finished checking the database yet.
+    if (doesCaregiverHasFriend == null) {
       return Container(
         width: screenWidth * 0.9,
         height: 200,
@@ -647,26 +674,49 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 10),
-              CustomText("Locating patient...", fromLeft: 0.0),
+              CustomText("Checking patient status...", fromLeft: 0.0),
             ],
           ),
         ),
       );
     }
 
-    // if email has been assigned , show the map
+    // If caregiver has no patient and we finished checking and found no patient.
+    if (doesCaregiverHasFriend == false) {
+      return Container(
+        width: screenWidth * 0.9,
+        height: 200,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.person_add, size: 40, color: Colors.grey),
+              SizedBox(height: 10),
+              CustomText(
+                  "Please add a patient to use this feature", fromLeft: 0.0),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // doesCaregiverHasFriend is true.
     return Column(
       children: [
         Align(
           alignment: Alignment.topLeft,
           child: CustomText(
-              "Patient's Live Location",
-              fontSize: 18,
-              fromLeft: 20,
-              fontWeight: FontWeight.w600,
+            "Patient's Live Location",
+            fontSize: 18,
+            fromLeft: 20,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(height: 20,),
+        const SizedBox(height: 20),
         Container(
           width: screenWidth * 0.85,
           height: 250,
@@ -681,7 +731,6 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
               ),
             ],
           ),
-          // it is now safe to use '!' because we checked for null above
           child: LiveTrackingPage(targetUserId: patientEmail!),
         ),
       ],
