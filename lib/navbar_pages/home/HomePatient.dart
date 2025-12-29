@@ -8,6 +8,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../global_widgets/custom_text.dart';
 import 'HomeCareGiver.dart';
 
@@ -39,9 +40,18 @@ class _HomePagePatientState extends State<HomePagePatient> {
   // To update the red dot on notification icon
   List<String> _pendingRequestsList = [];
 
+  Future<void> requestNotificationPermission() async {
+    var status = await Permission.notification.status;
+    if (status.isDenied) {
+      // This will show the native Android dialog asking for permission
+      await Permission.notification.request();
+    }
+  }
   @override
   void initState() {
     super.initState();
+    requestNotificationPermission();
+
     _audioPlayer.setReleaseMode(ReleaseMode.loop);
 
     //read user (patient) email
@@ -110,9 +120,9 @@ class _HomePagePatientState extends State<HomePagePatient> {
     final filename = file.name;
 
     try {
-      ///update ip address with new copied ip address from cmd ipconfig
+      /// update ip address with new copied ip address from cmd ipconfig
       /// both laptop and physical devices must be connected to the same LAN
-      final uri = Uri.parse('http://192.168.0.2:8000/api/data/predict/');
+      final uri = Uri.parse('http://192.168.100.60:8000/api/data/predict/');
       final request = http.MultipartRequest('POST', uri)
         ..files.add(
           http.MultipartFile.fromBytes(
@@ -568,7 +578,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
     );
   }
 
-  // Updated to accept setState to refresh the dialog
+  // updated to accept setState to refresh the dialog
   Widget _requestRow(
       String caregiverEmail,
       double screenWidth,
@@ -603,7 +613,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
-                      // Assuming CustomText is a widget you defined elsewhere
                       const CustomText("Caregiver", fromLeft: 0, fontSize: 11),
                     ],
                   ),
@@ -614,12 +623,12 @@ class _HomePagePatientState extends State<HomePagePatient> {
                 Container(
                   width: 100,
                   child: Row(
-                    mainAxisSize: MainAxisSize.min, // CRITICAL: Shrinks row to fit content
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Reject Button
                       IconButton(
-                        padding: EdgeInsets.zero, // Removes internal padding
-                        constraints: const BoxConstraints(), // Removes default 48px size
+                        padding: EdgeInsets.zero, // removes internal padding
+                        constraints: const BoxConstraints(),
                         icon: const Icon(Icons.close, color: Colors.red, size: 25),
                         onPressed: () async {
                           await _rejectPendingRequest(patientEmail!, caregiverEmail);
@@ -711,7 +720,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
     String caregiverEmail,
   ) async {
     try {
-      // FIX: Match BOTH Receiver and Sender to delete specific request
+      // match BOTH Receiver and Sender to delete specific request
       final querySnapshot = await FirebaseFirestore.instance
           .collection('PendingRequests')
           .where('Receiver', isEqualTo: patientEmail)

@@ -1,23 +1,25 @@
-// 1. We switch back to V1 SDK (Standard, no Eventarc)
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 
-admin.initializeApp();
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 
-// 2. CRITICAL CONFIGURATION:
-// Region: 'europe-west1' (Belgium) - Supported by V1 and close to your database.
-// Trigger: Directly listens to Firestore, bypassing the region block.
 exports.sendCaregiverNotification = functions.region('europe-west1').firestore
     .document('Notify/{docId}')
-    .onUpdate(async (change, context) => {
+    .onWrite(async (change, context) => { // CHANGED: onUpdate -> onWrite
 
       const newData = change.after.data();
-      const oldData = change.before.data();
+      const oldData = change.before.exists ? change.before.data() : null;
 
-      if (!newData || !oldData) return null;
+      // 1. Exit if document was deleted
+      if (!change.after.exists) return null;
 
-      // 3. Logic: Only run if 'notify' changed to TRUE
-      if (newData.notify === true && oldData.notify !== true) {
+      // 2. Logic: Run if 'notify' is TRUE
+      // We check if it is TRUE now, AND (it was previously false OR it didn't exist before)
+      const isNewNotification = newData.notify === true && (!oldData || oldData.notify !== true);
+
+      if (isNewNotification) {
 
         console.log(`Triggered for patient: ${newData.patient}`);
 
@@ -26,11 +28,20 @@ exports.sendCaregiverNotification = functions.region('europe-west1').firestore
 
         // Find Tokens
         const tokenPromises = caregivers.map(async (email) => {
-            const userDoc = await admin.firestore().collection('UsersInfo').doc(email).get();
+            // Trim whitespace to ensure email matches ID exactly
+            const cleanEmail = email.trim();
+            const userDoc = await admin.firestore().collection('UsersInfo').doc(cleanEmail).get();
+
             if (userDoc.exists) {
-                return userDoc.data().fcm_token;
+                const data = userDoc.data();
+                if (data.fcm_token) {
+                    return data.fcm_token;
+                } else {
+                     console.log(`User ${cleanEmail} exists but has no fcm_token`);
+                     return null;
+                }
             } else {
-                console.log(`No user found for: ${email}`);
+                console.log(`No user found in UsersInfo for: ${cleanEmail}`);
                 return null;
             }
         });
@@ -44,21 +55,32 @@ exports.sendCaregiverNotification = functions.region('europe-west1').firestore
                 notification: {
                     title: "Emergency Alert",
                     body: `Patient ${patientEmail} requires assistance!`,
+                },
+                // Android specific priority
+                android: {
+                    priority: "high",
+                    notification: {
+                        channelId: "emergency_channel" // Ensure this exists in Flutter if using channels
+                    }
                 }
             };
 
             try {
-                await admin.messaging().sendEachForMulticast({
+                const response = await admin.messaging().sendEachForMulticast({
                     tokens: validTokens,
-                    notification: payload.notification
+                    notification: payload.notification,
+                    android: payload.android
                 });
-                console.log(`Sent to ${validTokens.length} devices.`);
+                console.log(`Sent to ${response.successCount} devices. Failures: ${response.failureCount}`);
             } catch (error) {
                 console.error("Error sending:", error);
             }
+        } else {
+            console.log("No valid tokens found for any caregiver.");
         }
 
-        // RESET: Set 'notify' back to false
+        // RESET: Set 'notify' back to false to allow future triggers
+        // We use change.after.ref to ensure we update the correct doc
         return change.after.ref.update({ notify: false });
       }
 
