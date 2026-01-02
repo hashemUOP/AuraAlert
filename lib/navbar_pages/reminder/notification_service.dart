@@ -7,9 +7,10 @@ class NotificationService {
   FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
-    // Initialize timezone
+    // 1. Initialize timezone database
     tz.initializeTimeZones();
 
+    // 2. Define platform-specific settings
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -22,26 +23,20 @@ class NotificationService {
       iOS: iosSettings,
     );
 
+    // 3. Initialize the plugin
     await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (details) {
-        // Handle notification tap
+        // Handle logic when user taps the notification
         print('Notification tapped: ${details.payload}');
       },
     );
 
-    // Request permissions for Android 13+
-    await _requestPermissions();
-  }
-
-  static Future<void> _requestPermissions() async {
-    final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-
-    await androidPlugin?.requestNotificationsPermission();
-
-    // Request exact alarm permission for Android 12+
-    await androidPlugin?.requestExactAlarmsPermission();
+    // Request Android 13+ permissions
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
   }
 
   static Future<void> scheduleNotification({
@@ -50,28 +45,26 @@ class NotificationService {
     required String body,
     required DateTime scheduledTime,
   }) async {
-    // Convert DateTime to TZDateTime
-    final tz.TZDateTime scheduledDate = tz.TZDateTime.from(
-      scheduledTime,
-      tz.local,
-    );
+    // Prevent scheduling notifications in the past
+    if (scheduledTime.isBefore(DateTime.now())) {
+      print('Warning: Cannot schedule notification for a past time.');
+      return;
+    }
 
     await _notifications.zonedSchedule(
       id,
       title,
       body,
-      scheduledDate,
+      // Converts local DateTime to TZDateTime required by the plugin
+      tz.TZDateTime.from(scheduledTime, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'reminder_channel',
-          'Reminders',
-          channelDescription: 'Channel for reminder notifications',
-          importance: Importance.high,
+          'reminder_channel', // Channel ID
+          'Reminders',        // Channel Name
+          channelDescription: 'Scheduled reminders for medicine and appointments',
+          importance: Importance.max,
           priority: Priority.high,
           playSound: true,
-          enableVibration: true,
-          icon: '@mipmap/ic_launcher',
-          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -80,53 +73,22 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      // REMOVED: uiLocalNotificationDateInterpretation parameter
+      // FIXED: uiLocalNotificationDateInterpretation is removed as it is
+      // no longer required in the latest version of the package.
     );
 
-    print('✅ Notification scheduled for: $scheduledDate');
+    print('✅ Notification "$title" scheduled for: $scheduledTime');
   }
 
+  /// Cancels a specific notification by its ID
   static Future<void> cancelNotification(int id) async {
     await _notifications.cancel(id);
-    print('✅ Notification $id cancelled');
+    print('otificatinon $id cancelled');
   }
 
+  /// Cancels all pending notifications
   static Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
-    print('✅ All notifications cancelled');
-  }
-
-  // Get all pending notifications (useful for debugging)
-  static Future<List<PendingNotificationRequest>> getPendingNotifications() async {
-    return await _notifications.pendingNotificationRequests();
-  }
-
-  // Show immediate notification (for testing)
-  static Future<void> showImmediateNotification({
-    required int id,
-    required String title,
-    required String body,
-  }) async {
-    await _notifications.show(
-      id,
-      title,
-      body,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'reminder_channel',
-          'Reminders',
-          channelDescription: 'Channel for reminder notifications',
-          importance: Importance.high,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-    );
+    print('All notifications cancelled');
   }
 }

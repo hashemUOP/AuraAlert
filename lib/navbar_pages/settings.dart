@@ -62,45 +62,47 @@ Widget _infoTile({
   required String title,
   required String value,
 }) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 15),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF7F2FB),
-      borderRadius: BorderRadius.circular(15),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 28, color: const Color(0xFF8e44ad)),
-        const SizedBox(width: 15),
-
-        // TEXTS
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black54,
+  return SingleChildScrollView(
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F2FB),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 28, color: const Color(0xFF8e44ad)),
+          const SizedBox(width: 15),
+    
+          // TEXTS
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black54,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        )
-      ],
+              ],
+            ),
+          )
+        ],
+      ),
     ),
   );
 }
@@ -160,14 +162,8 @@ class _SettingsState extends State<Settings> {
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery
-        .of(context)
-        .size
-        .width;
-    double screenHeight = MediaQuery
-        .of(context)
-        .size
-        .height;
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
 
     IconData patientIcon = Icons.person;
     IconData caregiverIcon = Icons.health_and_safety;
@@ -344,88 +340,94 @@ class _SettingsState extends State<Settings> {
                             ],
                           ),
                           child: Column(
+                        children: [
+
+                        // -------- GRADIENT HEADER WITH AVATAR (Keep this as is) --------
+                        Container(
+                        width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF8e44ad),
+                                Color(0xFF9b59b6),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
                             children: [
-
-                              // -------- GRADIENT HEADER WITH AVATAR --------
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF8e44ad),
-                                      Color(0xFF9b59b6),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
+                              CircleAvatar(
+                                radius: 45,
+                                backgroundColor: Colors.white,
+                                backgroundImage: user!.photoURL != null
+                                    ? NetworkImage(user!.photoURL!)
+                                    : null,
+                                child: user!.photoURL == null
+                                    ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                                    : null,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                user!.displayName ?? "Unknown User",
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
-                                child: Column(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 45,
-                                      backgroundColor: Colors.white,
-                                      backgroundImage: user!.photoURL != null
-                                          ? NetworkImage(user!.photoURL!)
-                                          : null,
-                                      child: user!.photoURL == null
-                                          ? const Icon(Icons.person, size: 50,
-                                          color: Colors.grey)
-                                          : null,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      user!.displayName ?? "Unknown User",
-                                      // user name from fire auth
-                                      // userData!['name'] ?? "Unknown User", //user name from collection UsersInfo
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              const SizedBox(height: 25),
-
-                              // -------- USER INFO SECTION --------
-                              _infoTile(
-                                icon: Icons.email_rounded,
-                                title: "Email",
-                                value: user!.email ?? "N/A",
-                              ),
-
-                              _infoTile(
-                                  icon: Icons.phone_android_rounded,
-                                  title: "Phone",
-                                  value: userData!['phone'] ?? "Not Provided"
-                              ),
-
-                              _infoTile(
-                                icon: userData!['isPatient']!
-                                    ? patientIcon
-                                    : caregiverIcon,
-                                title: "Current State",
-                                value: userData!['isPatient']!
-                                    ? "Patient"
-                                    : "Care Giver",
-                              ),
-
-                              _infoTile(
-                                icon: Icons.calendar_month,
-                                title: "Join Date",
-                                value: userData!['createdAt'] != null
-                                    ? DateFormat('dd/MM/yyyy').format(
-                                  (userData!['createdAt'] as Timestamp)
-                                      .toDate(),
-                                )
-                                    : "Not Provided",
                               ),
                             ],
                           ),
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        // -------- USER INFO SECTION (The Fix) --------
+                        // ✅ ADD Expanded here so the list scrolls within the remaining space
+                        Expanded(
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(), // Optional: Makes scrolling feel better
+                            child: Column(
+                                children:[
+                                  _infoTile(
+                                    icon: Icons.email_rounded,
+                                    title: "Email",
+                                    value: user!.email ?? "N/A",
+                                  ),
+                                  _infoTile(
+                                      icon: Icons.phone_android_rounded,
+                                      title: "Phone",
+                                      value: userData!['phone'] ?? "Not Provided"
+                                  ),
+                                  _infoTile(
+                                    icon: userData!['isPatient']!
+                                        ? patientIcon
+                                        : caregiverIcon,
+                                    title: "Current State",
+                                    value: userData!['isPatient']!
+                                        ? "Patient"
+                                        : "Care Giver",
+                                  ),
+                                  _infoTile(
+                                    icon: Icons.calendar_month,
+                                    title: "Join Date",
+                                    value: userData!['createdAt'] != null
+                                        ? DateFormat('dd/MM/yyyy').format(
+                                      (userData!['createdAt'] as Timestamp).toDate(),
+                                    )
+                                        : "Not Provided",
+                                  ),
+                                  // Add a small bottom padding so the last item isn't cut off by screen curves
+                                  const SizedBox(height: 20),
+                                ]
+                            ),
+                          ),
+                        ), // End of Expanded
+
+                        ],
+                      ),
                         ),
                       );
                     },

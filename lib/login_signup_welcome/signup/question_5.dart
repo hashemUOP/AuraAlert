@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:aura_alert/global_widgets/custom_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../navbar_pages/location/LocationManager.dart';
 import '../login/login_screen.dart';
 
 class Question5Screen extends StatefulWidget {
@@ -18,9 +19,11 @@ class Question5Screen extends StatefulWidget {
 class _Question5ScreenState extends State<Question5Screen> {
   bool _isObscure = true;
   bool _isConfirmObscure = true;
+  bool _isLoading = false; // Controls loading spinner
 
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   bool _isValid = false;
 
@@ -31,27 +34,34 @@ class _Question5ScreenState extends State<Question5Screen> {
     _confirmPasswordController.addListener(_validatePasswords);
   }
 
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   void _validatePasswords() {
     setState(() {
-      _isValid = _passwordController.text.isNotEmpty &&
+      _isValid =
+          _passwordController.text.isNotEmpty &&
           _confirmPasswordController.text.isNotEmpty &&
           _passwordController.text == _confirmPasswordController.text;
     });
   }
 
-  Future<User?> signUpWithEmail(BuildContext context, String email, String password) async {
+  // --- 1. AUTH HELPER ---
+  Future<User?> signUpWithEmail(
+    BuildContext context,
+    String email,
+    String password,
+  ) async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+          .createUserWithEmailAndPassword(email: email, password: password);
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
-      if (kDebugMode) {
-        print("Signup error: ${e.code}");
-      }
-      // Show error to user
+      if (kDebugMode) print("Signup error: ${e.code}");
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -64,7 +74,7 @@ class _Question5ScreenState extends State<Question5Screen> {
     }
   }
 
-  // --- UPDATED ROBUST FUNCTION ---
+  // --- 2. DATABASE HELPER ---
   Future<void> createUserInfo({
     required String name,
     required String phone,
@@ -73,21 +83,16 @@ class _Question5ScreenState extends State<Question5Screen> {
     required String uid,
   }) async {
     String? token;
-
-    // 1. Try to get the token safely. If it fails, we continue with null.
     try {
       token = await FirebaseMessaging.instance.getToken();
     } catch (e) {
-      if (kDebugMode) {
-        print("Warning: Could not get FCM token. Continuing without it. Error: $e");
-      }
+      if (kDebugMode) print("Warning: Could not get FCM token: $e");
     }
 
-    // 2. Reference the collection
-    CollectionReference usersCollection =
-    FirebaseFirestore.instance.collection("UsersInfo");
+    CollectionReference usersCollection = FirebaseFirestore.instance.collection(
+      "UsersInfo",
+    );
 
-    // 3. Save Data (Rethrows error if it fails so UI knows)
     try {
       await usersCollection.doc(email).set({
         'uid': uid,
@@ -95,22 +100,15 @@ class _Question5ScreenState extends State<Question5Screen> {
         'phone': phone,
         'email': email,
         'isPatient': isPatient,
-        'fcm_token': token, // might be null, which is fine
+        'fcm_token': token,
         'createdAt': FieldValue.serverTimestamp(),
       });
-
-      if (kDebugMode) {
-        print("User document created successfully with Token: $token");
-      }
     } catch (e) {
-      // Rethrow so the button logic knows to stop
       throw Exception("Database write failed: $e");
     }
   }
 
-  bool intToBool(int value) {
-    return value != 0;
-  }
+  bool intToBool(int value) => value != 0;
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +136,6 @@ class _Question5ScreenState extends State<Question5Screen> {
                   const SizedBox(width: 48),
                 ],
               ),
-
               const SizedBox(height: 30),
 
               // --- TITLE ---
@@ -152,7 +149,6 @@ class _Question5ScreenState extends State<Question5Screen> {
                   fromLeft: 0.0,
                 ),
               ),
-
               const SizedBox(height: 30),
 
               // --- PASSWORD FIELDS ---
@@ -183,7 +179,6 @@ class _Question5ScreenState extends State<Question5Screen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 15),
 
               Container(
@@ -203,7 +198,9 @@ class _Question5ScreenState extends State<Question5Screen> {
                     border: InputBorder.none,
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _isConfirmObscure ? Icons.visibility_off : Icons.visibility,
+                        _isConfirmObscure
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         color: Colors.grey,
                       ),
                       onPressed: () {
@@ -216,85 +213,114 @@ class _Question5ScreenState extends State<Question5Screen> {
 
               const Spacer(),
 
-              // --- CONTINUE BUTTON ---
+              // --- BUTTON WITH ROLLBACK LOGIC ---
               ElevatedButton(
-                onPressed: _isValid
+                onPressed: (_isValid && !_isLoading)
                     ? () async {
-                  // 1. Load shared ref data
-                  final prefs = await SharedPreferences.getInstance();
-                  String? emailShared = prefs.getString('user_email');
-                  if (emailShared == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Error: Email missing from session")),
-                    );
-                    return;
-                  }
+                        setState(() => _isLoading = true);
 
-                  // 2. Create Auth User
-                  // Passing context to show SnackBar on failure
-                  final user = await signUpWithEmail(
-                    context,
-                    emailShared,
-                    _confirmPasswordController.text.trim(),
-                  );
+                        final prefs = await SharedPreferences.getInstance();
+                        String? emailShared = prefs.getString('user_email');
 
-                  // If auth failed, stop here
-                  if (user == null) return;
+                        if (emailShared == null) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  "Error: Email missing from session",
+                                ),
+                              ),
+                            );
+                            setState(() => _isLoading = false);
+                          }
+                          return;
+                        }
 
-                  if (kDebugMode) print("User created: ${user.email}");
+                        // 1. Create User in Firebase Auth
+                        final user = await signUpWithEmail(
+                          context,
+                          emailShared,
+                          _confirmPasswordController.text.trim(),
+                        );
 
-                  // 3. Create User's Info Document
-                  int? choice = prefs.getInt('selectedOption');
-                  String? phoneShared = prefs.getString('user_phone');
-                  String? nameShared = prefs.getString('user_name');
+                        if (user == null) {
+                          setState(() => _isLoading = false);
+                          return; // Auth failed, handled in function
+                        }
 
-                  try {
-                    await createUserInfo(
-                      uid: user.uid,
-                      name: nameShared ?? "",
-                      phone: phoneShared ?? "",
-                      email: emailShared,
-                      isPatient: intToBool(choice ?? 0),
-                    );
+                        // 2. Try saving User Info to Firestore
+                        try {
+                          int? choice = prefs.getInt('selectedOption');
+                          String? phoneShared = prefs.getString('user_phone');
+                          String? nameShared = prefs.getString('user_name');
 
-                    // 4. Success! Clear prefs and Navigate
-                    if (kDebugMode) print("User document created successfully!");
-                    await prefs.clear();
+                          await createUserInfo(
+                            uid: user.uid,
+                            name: nameShared ?? "",
+                            phone: phoneShared ?? "",
+                            email: emailShared,
+                            isPatient: intToBool(choice ?? 0),
+                          );
 
-                    if (!mounted) return;
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const MyNavBar()),
-                    );
+                          // SUCCESS: Clear cache and Navigate
+                          await prefs.clear();
+                          if (!mounted) return;
 
-                  } catch (e) {
-                    // 5. Handle Database Failure
-                    if (kDebugMode) print("Error creating user document: $e");
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Account created, but database failed: $e"),
-                          backgroundColor: Colors.red,
-                          duration: const Duration(seconds: 4),
-                        ),
-                      );
-                    }
-                  }
-                }
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  LocationManager(child: const MyNavBar()),
+                            ),
+                          );
+                        } catch (e) {
+                          // 🚨 FAILURE DETECTED - ROLLBACK! 🚨
+                          if (kDebugMode) print("CRITICAL DATABASE ERROR: $e");
+                          if (kDebugMode)
+                            print("Rolling back account creation...");
+
+                          // DELETE THE AUTH ACCOUNT we just made
+                          try {
+                            await user.delete();
+                            if (kDebugMode)
+                              print("Account deleted successfully.");
+                          } catch (delErr) {
+                            if (kDebugMode) print("Rollback failed: $delErr");
+                          }
+
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Setup failed. Account rolled back. Please try again.\nError: $e",
+                                ),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
+                            setState(() => _isLoading = false);
+                          }
+                        }
+                      }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isValid ? const Color(0xFF8e44ad) : Colors.grey,
+                  backgroundColor: _isValid
+                      ? const Color(0xFF8e44ad)
+                      : Colors.grey,
                   minimumSize: const Size(double.infinity, 56),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: CustomText(
-                  "Create Account",
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white.withOpacity(_isValid ? 1.0 : 0.6),
-                  fromLeft: 0.0,
-                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : CustomText(
+                        "Create Account",
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withOpacity(_isValid ? 1.0 : 0.6),
+                        fromLeft: 0.0,
+                      ),
               ),
 
               const SizedBox(height: 20),
@@ -312,8 +338,10 @@ class _Question5ScreenState extends State<Question5Screen> {
                   GestureDetector(
                     onTap: () {
                       Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
-                            (Route<dynamic> route) => route.isFirst,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                        (Route<dynamic> route) => route.isFirst,
                       );
                     },
                     child: const CustomText(

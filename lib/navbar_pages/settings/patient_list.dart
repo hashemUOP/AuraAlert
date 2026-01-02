@@ -372,7 +372,6 @@ class _PatientListState extends State<PatientList> {
                   ),
                   const SizedBox(width: 20),
 
-                  // Wrap the Column in Expanded so text truncates properly
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

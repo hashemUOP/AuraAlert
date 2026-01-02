@@ -304,6 +304,7 @@ class _CaregiverListState extends State<CaregiverList> {
   }
 
   // --- ROW FOR SEARCH RESULT ---
+  // --- ROW FOR SEARCH RESULT ---
   Widget _searchRow({
     required String targetUserEmail,
     required String currentSenderEmail,
@@ -321,23 +322,29 @@ class _CaregiverListState extends State<CaregiverList> {
           borderRadius: BorderRadius.circular(15),
           color: Colors.grey.shade100,
         ),
+        // ✅ FIX: Removed nested Row, used Expanded for the middle part
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.person, color: Colors.purple, size: 34.0),
-                const SizedBox(width: 20),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText(targetUserEmail, fromLeft: 0, fontSize: 16),
-                    CustomText("Patient", fromLeft: 0, fontSize: 11),
-                  ],
-                ),
-              ],
+            const Icon(Icons.person, color: Colors.purple, size: 34.0),
+            const SizedBox(width: 20),
+
+            // ✅ FIX: Expanded forces the Column to take only available space
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    targetUserEmail,
+                    overflow: TextOverflow.ellipsis, // Now this works!
+                    maxLines: 1,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  CustomText("Patient", fromLeft: 0, fontSize: 11),
+                ],
+              ),
             ),
+            const SizedBox(width: 10), // Spacing before the action button
 
             // Check for Pending Request
             StreamBuilder<QuerySnapshot>(
@@ -395,7 +402,6 @@ class _CaregiverListState extends State<CaregiverList> {
   }
 
   // --- HELPERS ---
-
   Future<void> addPendingRequest({
     required String senderEmail,
     required String receiverEmail,

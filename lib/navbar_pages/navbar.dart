@@ -7,7 +7,6 @@ as if the new route is the top of stack and only element in it
  */
 import 'package:aura_alert/navbar_pages/ChatBotMain.dart';
 import 'package:aura_alert/navbar_pages/Home.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:iconsax/iconsax.dart';
@@ -16,13 +15,10 @@ import 'package:aura_alert/navbar_pages/Learn.dart';
 import 'package:aura_alert/navbar_pages/settings.dart';
 import 'package:flutter/services.dart';
 
-// ✅ Added Imports for Location Logic
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:aura_alert/navbar_pages/location/SenderLocation.dart'; // Ensure this matches your file path
+// // import new helper class for location
+// import 'path/to/LocationManager.dart';
 
 class MyNavBar extends StatefulWidget {
-
   final int? globalSelectedIndex;
   const MyNavBar({super.key, this.globalSelectedIndex});
 
@@ -32,52 +28,19 @@ class MyNavBar extends StatefulWidget {
 
 class _MyNavBarState extends State<MyNavBar> {
   int _selectedIndex = 0;
-  bool hasUsedGlobalIndex = false; // Flag to track if globalSelectedIndex has been used
+  bool hasUsedGlobalIndex = false;
   bool? hasConnection;
 
   @override
   void initState() {
     super.initState();
-    // _listenToConnectionChanges();
 
-    // Check if globalSelectedIndex is provided and has not been used yet
     if (widget.globalSelectedIndex != null && !hasUsedGlobalIndex) {
       _selectedIndex = widget.globalSelectedIndex!;
-      hasUsedGlobalIndex = true; // Mark as used
+      hasUsedGlobalIndex = true;
     }
 
-    // ✅ Call the location starter here
-    _checkAndStartLocationService();
-  }
-
-  // ✅ New Function to handle Location Sharing
-  Future<void> _checkAndStartLocationService() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      // Retrieve the 'isPatient' value we saved during login/loading
-      bool isPatient = prefs.getBool('isPatient') ?? false;
-
-      if (isPatient) {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          // Initialize your service
-          LocationService locationService = LocationService();
-
-          // Start sharing (background mode enabled inside the service)
-          locationService.shareLocation(user.email!);
-
-          if (kDebugMode) {
-            print("📍 Location service started for Patient: ${user.email}");
-            print("im in navbar");
-          }
-
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print("Error starting location service: $e");
-      }
-    }
+    // LocationManager.checkAndStartLocationService();
   }
 
   void _navigateBottomBar(int index) {
@@ -94,11 +57,6 @@ class _MyNavBarState extends State<MyNavBar> {
     const Settings()
   ];
 
-  /*
-  // this code do the following when the user is in the MyNavBar page and pops(try's to go the previous page(Login)
-  he gets an alert dialog
-  which prevents poping back to the login page unless  he go to settings and log out or delete account
-   */
   Future<bool> _onWillPop() async {
     final shouldExit = await showDialog<bool>(
       context: context,
@@ -111,7 +69,7 @@ class _MyNavBarState extends State<MyNavBar> {
         content: const Text('Do you really want to exit the app?'),
         actions: <Widget>[
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false), // User stays
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text(
               'No',
               style: TextStyle(color: Colors.green),
@@ -119,7 +77,7 @@ class _MyNavBarState extends State<MyNavBar> {
           ),
           TextButton(
             onPressed: () {
-              SystemNavigator.pop(); // Exit the app
+              SystemNavigator.pop();
             },
             child: const Text(
               'Yes',
@@ -135,18 +93,19 @@ class _MyNavBarState extends State<MyNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope( //this widget is deprecated try using if playstore doesn't accept app ,use Navigator.pushReplacement in main.dart which prevents user from pop after sending user to a new route(page),in other words doesn't keep old route in stack as if the new route is the top of stack and only element in it
+    return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: hasConnection == false // When there's no internet connection, show this UI
+        body: hasConnection == false
             ? Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Image(image: AssetImage('assets/images/5865576.jpg')),
               Padding(
-                padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.1),
+                padding: EdgeInsets.all(
+                    MediaQuery.of(context).size.width * 0.1),
                 child: const Text(
                   'No internet connection.\nPlease check your connection.',
                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -156,12 +115,12 @@ class _MyNavBarState extends State<MyNavBar> {
             ],
           ),
         )
-            : pages[_selectedIndex], // If connected, show the respective page,
+            : pages[_selectedIndex],
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
             border: Border(
               top: BorderSide(
-                color: Colors.grey.shade300, // Upper border color
+                color: Colors.grey.shade300,
                 width: 1.0,
               ),
             ),
@@ -172,7 +131,7 @@ class _MyNavBarState extends State<MyNavBar> {
               backgroundColor: Colors.white,
               color: Colors.grey,
               activeColor: Colors.black54,
-              tabBackgroundColor: Color(0xffdf8fff),
+              tabBackgroundColor: const Color(0xffdf8fff),
               gap: 8,
               padding: const EdgeInsets.all(12),
               selectedIndex: _selectedIndex,
@@ -191,7 +150,6 @@ class _MyNavBarState extends State<MyNavBar> {
                   text: 'ChatBot',
                 ),
                 GButton(
-                  // icon: FontAwesomeIcons.notesMedical,
                   icon: Iconsax.book_1,
                   text: 'Learn',
                 ),

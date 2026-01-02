@@ -1,9 +1,10 @@
-import 'dart:async'; // Added for StreamSubscription
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:aura_alert/login_signup_welcome/screens/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
@@ -13,7 +14,10 @@ import 'package:aura_alert/login_signup_welcome/auth_services.dart';
 import 'package:aura_alert/gemini_api_key.dart';
 import 'package:aura_alert/navbar_pages/reminder/notification_service.dart';
 
-// --- NEW IMPORTS FOR NOTIFICATIONS ---
+// ✅ Import LocationManager wrapper (Ensure this path is correct)
+import 'package:aura_alert/navbar_pages/location/LocationManager.dart';
+
+// --- imports from notifications ---
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -69,6 +73,12 @@ Future<void> main() async {
 
   await _deleteSharedData();
 
+  // This code to stop landscape mode
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   runApp(const MyApp());
 }
 
@@ -85,7 +95,6 @@ class _MyAppState extends State<MyApp> {
     super.initState();
 
     // --- 5. SETUP FOREGROUND LISTENER ---
-    // This allows the notification to show a visual alert even if the app is OPEN.
     var initializationSettingsAndroid =
     const AndroidInitializationSettings('@mipmap/ic_launcher');
     var initializationSettings =
@@ -108,7 +117,7 @@ class _MyAppState extends State<MyApp> {
               channel.id,
               channel.name,
               channelDescription: channel.description,
-              icon: '@mipmap/ic_launcher', // Ensure this icon exists in android/app/src/main/res/mipmap-*
+              icon: '@mipmap/ic_launcher', // app icon
               importance: Importance.max,
               priority: Priority.high,
               playSound: true,
@@ -155,10 +164,13 @@ class AuthGate extends StatelessWidget {
               }
 
               // --- 6. UPDATE TOKEN ON LOGIN ---
-              // Best practice: Ensure Firestore has the latest token for this user
-              _updateMyToken();
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                _updateMyToken(user.email);
+              }
 
-              return const MyNavBar();
+              // ✅ WRAP MyNavBar with LocationManager
+              return LocationManager(child: const MyNavBar());
             },
           );
         }
@@ -168,18 +180,26 @@ class AuthGate extends StatelessWidget {
     );
   }
 
-  // Helper to keep token fresh in Firestore
-  Future<void> _updateMyToken() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
+  // ✅ CRASH-PROOF TOKEN UPDATE FUNCTION
+  Future<void> _updateMyToken(String? email) async {
+    if (email == null) return;
+
+    try {
       String? token = await FirebaseMessaging.instance.getToken();
       if (token != null) {
+        // Use .set() with merge: true to avoid "NOT_FOUND" crashes
         await FirebaseFirestore.instance
             .collection('UsersInfo')
-            .doc(user.email)
-            .update({'fcm_token': token}); // Ensure field matches Firestore
-        if (kDebugMode) print("FCM Token refreshed for ${user.email}");
+            .doc(email)
+            .set({
+          'fcm_token': token,
+          'lastTokenUpdate': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        if (kDebugMode) print("FCM Token refreshed safely for $email");
       }
+    } catch (e) {
+      if (kDebugMode) print("Warning: Could not update FCM token: $e");
     }
   }
 }

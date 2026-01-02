@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -34,8 +33,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
   bool? seizureAlert;
 
   PatientStatus _currentStatus = PatientStatus.stable;
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  bool _isSoundPlaying = false;
 
   // To update the red dot on notification icon
   List<String> _pendingRequestsList = [];
@@ -52,7 +49,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
     super.initState();
     requestNotificationPermission();
 
-    _audioPlayer.setReleaseMode(ReleaseMode.loop);
 
     //read user (patient) email
     final user = FirebaseAuth.instance.currentUser;
@@ -77,25 +73,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
           _pendingRequestsList = reqs;
         });
       }
-    }
-  }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  void _toggleSound() async {
-    if (_isSoundPlaying) {
-      await _audioPlayer.stop();
-    } else {
-      await _audioPlayer.play(UrlSource('audio/rain.mp3'));
-    }
-    if (mounted) {
-      setState(() {
-        _isSoundPlaying = !_isSoundPlaying;
-      });
     }
   }
 
@@ -466,14 +443,6 @@ class _HomePagePatientState extends State<HomePagePatient> {
         ),
         Row(
           children: [
-            IconButton(
-              icon: Icon(
-                _isSoundPlaying ? Icons.cloudy_snowing : Icons.cloud_outlined,
-                color: const Color(0xFF8e44ad),
-                size: 30,
-              ),
-              onPressed: _toggleSound,
-            ),
             Stack(
               children: [
                 IconButton(
