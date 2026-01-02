@@ -90,6 +90,7 @@ flutter:
   assets:
     # whole folders definition
     - assets/images/
+    - assets/images/learn/
     - assets/videos/
 
   # An image asset can refer to one or more resolution-specific "variants", see

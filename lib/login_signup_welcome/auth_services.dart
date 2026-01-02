@@ -23,9 +23,9 @@ class AuthService {
     }
   }
 
-  /// -----------------------------
-  /// GOOGLE LOGIN (WEB + MOBILE)
-  /// -----------------------------
+  /// --------------------------------- ///
+        /// GOOGLE LOGIN (WEB + MOBILE)
+  /// --------------------------------- ///
   Future<void> handleGoogleSignIn(BuildContext context) async {
     try {
       UserCredential userCredential;
@@ -104,7 +104,7 @@ class AuthService {
   }
 
   /// -----------------------------
-  /// UNIVERSAL LOGOUT
+        /// UNIVERSAL LOGOUT
   /// -----------------------------
   Future<void> signOut() async {
     final user = _auth.currentUser;
@@ -123,7 +123,7 @@ class AuthService {
   }
 
   /// -----------------------------
-  /// DELETE ACCOUNT
+            /// DELETE ACCOUNT
   /// -----------------------------
   Future<void> deleteUser(BuildContext context) async {
     final user = _auth.currentUser;

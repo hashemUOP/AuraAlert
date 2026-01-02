@@ -3,7 +3,6 @@ import '../global_widgets/custom_text.dart';
 import 'package:aura_alert/navbar_pages/learn/emergency_guide_page.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-// import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:aura_alert/navbar_pages/learn/article_page.dart';
@@ -31,7 +30,7 @@ final List<LearnTopic> learnTopics = [
     title: 'What is Epilepsy?',
     icon: Icons.psychology_outlined,
     color: Colors.blue,
-    imagePath: 'images/learn/epilepsy_intro.jpg',
+    imagePath: 'assets/images/learn/epilepsy_intro.jpg',
     content: 'Epilepsy is a chronic disorder, the hallmark of which is recurrent, unprovoked seizures. A person is diagnosed with epilepsy if they have two unprovoked seizures (or one unprovoked seizure with the likelihood of more) that were not caused by some known and reversible medical condition like alcohol withdrawal or extremely low blood sugar.\n\n'
         'The seizures in epilepsy may be related to a brain injury or a family tendency, but often the cause is completely unknown. The word "epilepsy" does not indicate anything about the cause of the person’s seizures or their severity.\n\n'
         'Many people with epilepsy have more than one type of seizure and may have other symptoms of neurological problems as well. Sometimes EEG (electroencephalogram) testing, clinical history, family history, and outlook are similar among a group of people with epilepsy. In these situations, their condition can be defined as a specific epilepsy syndrome.\n\n'
@@ -41,7 +40,7 @@ final List<LearnTopic> learnTopics = [
     title: 'Types of Seizures',
     icon: Icons.dashboard_customize_outlined,
     color: Colors.orange,
-    imagePath: 'images/learn/seizure_types.webp',
+    imagePath: 'assets/assets/images/learn/seizure_types.webp',
     content: 'Seizures are classified into two broad categories based on where they start in the brain: Focal seizures and Generalized seizures.\n\n'
         '1. FOCAL SEIZURES:\n'
         'These seizures start in one area or group of cells in one side of the brain.\n'
@@ -57,7 +56,7 @@ final List<LearnTopic> learnTopics = [
     title: 'Medication Guide',
     icon: Icons.medication_outlined,
     color: Colors.green,
-    imagePath: 'images/learn/medication.jpg',
+    imagePath: 'assets/images/learn/medication.jpg',
     content: 'Anti-seizure medication (ASM) is the most common way to treat epilepsy. About 7 out of 10 people with epilepsy can control their seizures with medication alone.\n\n'
         'KEY RULES FOR MEDICATION:\n'
         '1. Consistency is Key: Take your medicine exactly as prescribed. Missing doses can cause your seizures to come back or become more intense.\n\n'
@@ -69,7 +68,7 @@ final List<LearnTopic> learnTopics = [
     title: 'Danger Signs',
     icon: Icons.warning_amber_rounded,
     color: Colors.red,
-    imagePath: 'images/learn/danger_signs.jpg',
+    imagePath: 'assets/images/learn/danger_signs.jpg',
     content: 'Most seizures end on their own and do not require emergency medical attention. However, there are specific situations where you MUST call 911 or your local emergency number immediately:\n\n'
         'CALL AN AMBULANCE IF:\n'
         '- The seizure lasts longer than 5 minutes.\n'
@@ -85,7 +84,7 @@ final List<LearnTopic> learnTopics = [
     title: 'Myths & Facts',
     icon: Icons.question_answer_outlined,
     color: Colors.teal,
-    imagePath: 'images/learn/myths.png',
+    imagePath: 'assets/images/learn/myths.png',
     content: 'Epilepsy is often misunderstood. Clearing up these myths is essential for proper first aid and reducing stigma.\n\n'
         'MYTH: You can swallow your tongue during a seizure.\n'
         'FACT: It is physically impossible to swallow your tongue. You should NEVER put anything in a person\'s mouth during a seizure. Doing so can break their teeth or injure your fingers.\n\n'
@@ -100,7 +99,7 @@ final List<LearnTopic> learnTopics = [
     title: 'After Seizure Care',
     icon: Icons.healing_outlined,
     color: Colors.indigo,
-    imagePath: 'images/learn/recovery.jpg',
+    imagePath: 'assets/images/learn/recovery.jpg',
     content: 'The time immediately following a seizure is called the "post-ictal" phase. This recovery period can last from minutes to hours. The person may be confused, tired, embarrassed, or have a headache.\n\n'
         'STEPS FOR CARE:\n'
         '1. Check for Injuries: Look for cuts or bruises that may have happened during the fall.\n\n'
@@ -307,7 +306,7 @@ class EducationPage extends StatelessWidget {
         onTap: () async {
           try {
             final byteData = await rootBundle.load(
-              'images/Seizure-First-Aid-Poster.png',
+              'assets/images/Seizure-First-Aid-Poster.png',
             );
 
             final tempDir = await getTemporaryDirectory();

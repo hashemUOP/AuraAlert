@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../navbar_pages/location/LocationManager.dart';
 import '../login/login_screen.dart';
 import 'package:aura_alert/navbar_pages/navbar.dart';
 import 'package:aura_alert/global_widgets/custom_text.dart';
@@ -189,7 +190,7 @@ class _Question3ScreenState extends State<Question3Screen> {
 
                     if (!mounted) return;
                     Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const MyNavBar()),
+                      MaterialPageRoute(builder: (_) =>  LocationManager(child: const MyNavBar())),
                     );
 
                   } catch (e) {
