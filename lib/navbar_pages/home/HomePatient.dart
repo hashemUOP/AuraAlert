@@ -245,7 +245,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Only show spinner if we are NOT in success state
+                        // only show spinner if NOT in success state
                         if (!isSuccess) ...[
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -262,7 +262,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
                             ],
                           ),
                         ] else ...[
-                          // Show Checkmark when done
+                          // show Checkmark when done
                           const Icon(
                             Icons.check_circle,
                             color: Colors.green,
@@ -271,18 +271,19 @@ class _HomePagePatientState extends State<HomePagePatient> {
                         ],
 
                         const SizedBox(height: 20),
-
-                        // Text Logic
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 40),
-                          child: CustomText(
-                            color: Colors.purple,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w500,
+                          child: Text(
+                            style: TextStyle(
+                              color: Colors.purple,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w500,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            maxLines: 3,
                             uploadingLoading
                                 ? "Please wait while our AI reviews your data..."
                                 : "All done! Here are your results.",
-                            fromLeft: 0,
                             textAlign: TextAlign.center,
                           ),
                         ),
