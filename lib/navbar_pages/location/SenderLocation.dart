@@ -47,7 +47,9 @@ class LocationService {
         onTapBringToFront: true,
       );
     } catch (e) {
-      print("Error enabling background mode: $e");
+      if (kDebugMode) {
+        print("Error enabling background mode: $e");
+      }
     }
 
     // 3. Listen to stream and update Firestore

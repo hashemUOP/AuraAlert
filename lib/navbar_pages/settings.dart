@@ -15,10 +15,10 @@ import 'package:aura_alert/global_widgets/color_changing_container.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../main.dart';
 
 class Settings extends StatefulWidget {
-  const Settings({super.key});
+  final bool? isPatient;
+  const Settings({super.key, required this.isPatient});
 
   @override
   State<Settings> createState() => _SettingsState();
@@ -109,37 +109,12 @@ Widget _infoTile({
 
 
 class _SettingsState extends State<Settings> {
-  bool? isPatient;
 
   final AuthService _authService = AuthService();
   User? user = FirebaseAuth.instance.currentUser;
 
 
-  Future<void> loadUserType() async {
-    // 1. Try to read from Local Storage first (It's faster)
-    final prefs = await SharedPreferences.getInstance();
-    bool? localStatus = prefs.getBool('isPatient');
 
-    if (localStatus != null) {
-      // If we found it locally, use it immediately
-      if (mounted) {
-        setState(() {
-          isPatient = localStatus;
-        });
-      }
-    } else {
-      // 2. If local storage is empty, fetch from Firebase
-      // getIsPatient is defined in main
-      bool? firebaseStatus = await getIsPatient();
-
-      if (mounted) {
-        setState(() {
-          // If firebase returns null (error), default to false or handle error
-          isPatient = firebaseStatus ?? false;
-        });
-      }
-    }
-  }
 
   Map<String, dynamic>? userData;
 
@@ -147,7 +122,6 @@ class _SettingsState extends State<Settings> {
   void initState() {
     super.initState();
     loadUserInfo();
-    loadUserType();
   }
 
 
@@ -204,9 +178,9 @@ class _SettingsState extends State<Settings> {
                     builder: (context) => const BugReportPage(),
                   ),
                 ),              ),
-              isPatient == null ?
+              widget.isPatient == null ?
               const SizedBox.shrink() // show nothing if isPatient is null
-                  : isPatient == true ? //show  ColorChangingContainer
+                  : widget.isPatient == true ? //show  ColorChangingContainer
               ColorChangingContainer(
                 icon: const Icon(Iconsax.star, color: Colors.black54),
                 iconPost: const Icon(
@@ -485,7 +459,7 @@ class _SettingsState extends State<Settings> {
 
                   // if user is patient delete Firestore patient data
                   // else delete caregiver data.
-                  if (isPatient == true) {
+                  if (widget.isPatient == true) {
                     await _deleteAllPatientDataFromFirebase(
                         context, user!.email!);
                   } else {

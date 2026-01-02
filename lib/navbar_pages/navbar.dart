@@ -10,13 +10,11 @@ import 'package:aura_alert/navbar_pages/Home.dart';
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:aura_alert/navbar_pages/reminders.dart';
 import 'package:aura_alert/navbar_pages/Learn.dart';
 import 'package:aura_alert/navbar_pages/settings.dart';
 import 'package:flutter/services.dart';
-
-// // import new helper class for location
-// import 'path/to/LocationManager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../main.dart';
 
 class MyNavBar extends StatefulWidget {
   final int? globalSelectedIndex;
@@ -30,6 +28,7 @@ class _MyNavBarState extends State<MyNavBar> {
   int _selectedIndex = 0;
   bool hasUsedGlobalIndex = false;
   bool? hasConnection;
+  bool? isPatient;
 
   @override
   void initState() {
@@ -40,7 +39,27 @@ class _MyNavBarState extends State<MyNavBar> {
       hasUsedGlobalIndex = true;
     }
 
-    // LocationManager.checkAndStartLocationService();
+    loadUserType();
+  }
+
+  Future<void> loadUserType() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool? localStatus = prefs.getBool('isPatient');
+
+    if (localStatus != null) {
+      if (mounted) {
+        setState(() {
+          isPatient = localStatus;
+        });
+      }
+    } else {
+      bool? firebaseStatus = await getIsPatient();
+      if (mounted) {
+        setState(() {
+          isPatient = firebaseStatus ?? false;
+        });
+      }
+    }
   }
 
   void _navigateBottomBar(int index) {
@@ -48,14 +67,6 @@ class _MyNavBarState extends State<MyNavBar> {
       _selectedIndex = index;
     });
   }
-
-  List<Widget> pages = [
-    const Home(),
-    const Reminders(),
-    const ChatBotMain(),
-    const EducationPage(),
-    const Settings()
-  ];
 
   Future<bool> _onWillPop() async {
     final shouldExit = await showDialog<bool>(
@@ -93,6 +104,13 @@ class _MyNavBarState extends State<MyNavBar> {
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> pages = [
+      const Home(),
+      const ChatBotMain(),
+      const EducationPage(),
+      Settings(isPatient: isPatient),
+    ];
+
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
@@ -140,10 +158,6 @@ class _MyNavBarState extends State<MyNavBar> {
                 GButton(
                   icon: Iconsax.house_24,
                   text: 'Home',
-                ),
-                GButton(
-                  icon: Iconsax.timer_1,
-                  text: 'Reminders',
                 ),
                 GButton(
                   icon: Iconsax.messages,
