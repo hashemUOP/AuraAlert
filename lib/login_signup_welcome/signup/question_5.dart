@@ -19,7 +19,7 @@ class Question5Screen extends StatefulWidget {
 class _Question5ScreenState extends State<Question5Screen> {
   bool _isObscure = true;
   bool _isConfirmObscure = true;
-  bool _isLoading = false; // Controls loading spinner
+  bool _isLoading = false; // controls loading spinner
 
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =

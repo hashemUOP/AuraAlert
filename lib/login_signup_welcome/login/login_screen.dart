@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
 
   String _errorMessage = '';
-  bool isLoading = false; // Controls loading state for both buttons
+  bool isLoading = false; // controls loading state for both buttons
 
   Future<void> _signIn() async {
     setState(() {
@@ -59,7 +59,6 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        // ✅ FIX: LayoutBuilder + SingleChildScrollView prevents overflow
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
@@ -86,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: Colors.black54,
                               fromLeft: 0.0,
                             ),
-                            const SizedBox(width: 48), // Balances the back button
+                            const SizedBox(width: 48),
                           ],
                         ),
                         const SizedBox(height: 30),
@@ -175,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         // --- Google Login Button ---
                         ElevatedButton(
                           onPressed: isLoading
-                              ? null // Disable button while loading
+                              ? null // disable button while loading
                               : () async {
                             setState(() { isLoading = true; });
                             await _authService.handleGoogleSignIn(context);
@@ -210,7 +209,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
 
-                        // ✅ Pushes "Continue" button to bottom (works safely now)
                         const Spacer(),
                         const SizedBox(height: 20),
 

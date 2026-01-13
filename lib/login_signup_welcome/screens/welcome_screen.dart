@@ -29,7 +29,6 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 50),
 
-                    // This one is OK because Colors.white is a const
                     const CustomText(
                       'Feel safer. Live Better.',
                       textAlign: TextAlign.center,
@@ -40,8 +39,6 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 15),
 
-                    // --- FIXED HERE: `const` removed ---
-                    // because Colors.grey[300] is not a constant.
                     CustomText(
                       'AuraAlert helps families detect seizures and manage epilepsy with confidence.',
                       textAlign: TextAlign.center,
@@ -51,8 +48,6 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
-                    // --- FIXED HERE: `const` removed ---
-                    // This is the line that caused your error.
                     CustomText(
                       'Trusted by thousands of families',
                       textAlign: TextAlign.center,

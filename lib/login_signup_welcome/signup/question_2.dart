@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,7 +37,7 @@ class _Question2ScreenState extends State<Question2Screen> {
 
   Future<bool> emailExistsInFirestore(String email) async {
     try {
-      // Standardize the input
+      // standardize the input
       final cleanEmail = email.toLowerCase().trim();
 
       final AggregateQuerySnapshot query = await FirebaseFirestore.instance
@@ -50,7 +50,9 @@ class _Question2ScreenState extends State<Question2Screen> {
       return query.count! > 0;
 
     } catch (e) {
-      print("Error checking email existence: $e");
+      if (kDebugMode) {
+        print("Error checking email existence: $e");
+      }
       return false;
     }
   }
@@ -180,10 +182,10 @@ class _Question2ScreenState extends State<Question2Screen> {
                     ? () async {
                   setState(() => isLoading = true);
 
-                  // Check Firebase
+                  // check Firebase
                   bool exists = await emailExistsInFirestore(_emailController.text);
 
-                  // Ensure widget is still on screen before using context
+                  // ensure widget is still on screen before using context
                   if (!mounted) return;
 
                   setState(() => isLoading = false);
@@ -193,13 +195,13 @@ class _Question2ScreenState extends State<Question2Screen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text("This email is already registered."),
-                        backgroundColor: Colors.redAccent, // Red for error/warning
+                        backgroundColor: Colors.redAccent,
                         duration: Duration(seconds: 2),
                       ),
                     );
                   } else {
                     //////////////////////////////SharedPreferences///////////////////////////////////////
-                    // Save email to SharedPreferences
+                    // save email to SharedPreferences
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString('user_email', _emailController.text.trim());
 
@@ -208,7 +210,7 @@ class _Question2ScreenState extends State<Question2Screen> {
                     print("User entered email : $email");
                     ////////////////////////////////////////////////////////////////////////////////////////
 
-                    // Navigate to the next screen
+                    // navigate to the next screen
                     if (!mounted) return;
                     Navigator.push(
                       context,

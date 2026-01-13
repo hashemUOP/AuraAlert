@@ -1,4 +1,3 @@
-// chat_page.dart
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -50,18 +49,18 @@ class _ChatBotState extends State<ChatBot> {
   String _makeId(String prefix) =>
       '$prefix-${DateTime.now().millisecondsSinceEpoch}-${_messages.length}';
 
-  /// Best-effort extractor for various "part" shapes to avoid compile-time issues.
+  /// best-effort extractor for various "part" shapes to avoid compile-time issues.
   String _extractTextFromPart(dynamic p) {
     try {
       if (p == null) return '';
-      // If it's already a string
+      // if it's already a string
       if (p is String) return p;
-      // If it's a Map-like (JSON decoded)
+      // if it's a Map-like (JSON decoded)
       if (p is Map) {
         return (p['text'] ?? p['content'] ?? p['body'] ?? p['value'] ?? '')
             .toString();
       }
-      // Try property access on dynamic object (may throw)
+      // try property access on dynamic object (may throw)
       try {
         final t = (p as dynamic).text;
         if (t != null) return t.toString();
@@ -70,7 +69,7 @@ class _ChatBotState extends State<ChatBot> {
         final t = (p as dynamic).content;
         if (t != null) return t.toString();
       } catch (_) {}
-      // Fallback
+      // fallback
       return p.toString();
     } catch (_) {
       return '';
@@ -78,7 +77,7 @@ class _ChatBotState extends State<ChatBot> {
   }
 
   void _scrollToTop() {
-    // We're using reverse: true and inserting at index 0, so top == newest
+    // we're using reverse: true and inserting at index 0, so top == newest
     if (!_scrollController.hasClients) return;
     try {
       _scrollController.animateTo(
@@ -110,25 +109,25 @@ class _ChatBotState extends State<ChatBot> {
     _sendToGemini(question: text, imageBytes: null);
   }
 
-  Future<void> _sendImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked == null) return;
-
-    // Show user's image immediately
-    final userImgMsg = _Msg(
-      id: _makeId('user-img'),
-      isUser: true,
-      isImage: true,
-      imagePath: picked.path,
-    );
-
-    setState(() => _messages.insert(0, userImgMsg));
-    _scrollToTop();
-
-    final bytes = await File(picked.path).readAsBytes();
-    _sendToGemini(question: "Describe this image", imageBytes: bytes);
-  }
+  // Future<void> _sendImage() async {
+  //   final picker = ImagePicker();
+  //   final picked = await picker.pickImage(source: ImageSource.gallery);
+  //   if (picked == null) return;
+  //
+  //   // show user's image immediately
+  //   final userImgMsg = _Msg(
+  //     id: _makeId('user-img'),
+  //     isUser: true,
+  //     isImage: true,
+  //     imagePath: picked.path,
+  //   );
+  //
+  //   setState(() => _messages.insert(0, userImgMsg));
+  //   _scrollToTop();
+  //
+  //   final bytes = await File(picked.path).readAsBytes();
+  //   _sendToGemini(question: "Describe this image", imageBytes: bytes);
+  // }
 
   // --- Gemini streaming ----------------------------------------------------
   void _sendToGemini({required String question, Uint8List? imageBytes}) {
@@ -146,7 +145,7 @@ class _ChatBotState extends State<ChatBot> {
     setState(() => _messages.insert(0, botPlaceholder));
     _scrollToTop();
 
-    // Attempt to stream; be defensive about event shape
+    // attempt to stream; be defensive about event shape
     try {
       gemini
           .streamGenerateContent(
@@ -341,10 +340,10 @@ class _ChatBotState extends State<ChatBot> {
               color: Colors.white,
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.image, color: Colors.purple[400]),
-                    onPressed: _sendImage,
-                  ),
+                  // IconButton(
+                  //   icon: Icon(Icons.image, color: Colors.purple[400]),
+                  //   onPressed: _sendImage,
+                  // ),
                   Expanded(
                     child: TextField(
                       controller: _controller,

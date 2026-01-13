@@ -12,15 +12,15 @@ class Question1Screen extends StatefulWidget {
 }
 
 class _Question1ScreenState extends State<Question1Screen> {
-  // This variable will hold the selected option. 1 for the first, 2 for the second.
-  // We use `int?` (a nullable int) so it can be null when nothing is selected.
+  // this variable will hold the selected option. 1 for the first, 2 for the second.
+  // we use `int?` (a nullable int) so it can be null when nothing is selected.
   int? _selectedOption;
 
   // clear all shared preferences on page initial to clear all prev data if it existed
   @override
   void initState() {
     super.initState();
-    _clearAllPrefs();    // <-- Clear at the start
+    _clearAllPrefs();    // <-- clear at the start
   }
 
   Future<void> _clearAllPrefs() async {
@@ -33,7 +33,7 @@ class _Question1ScreenState extends State<Question1Screen> {
 
   @override
   Widget build(BuildContext context) {
-    // We check if an option has been selected to enable/disable the Next button.
+    // we check if an option has been selected to enable/disable the Next button.
     final bool isNextButtonEnabled = _selectedOption != null;
 
     return Scaffold(
@@ -42,7 +42,6 @@ class _Question1ScreenState extends State<Question1Screen> {
         padding: const EdgeInsets.symmetric(horizontal: 25.0),
         child: Column(
 
-          // Align all content to the left
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 35,),
@@ -59,7 +58,7 @@ class _Question1ScreenState extends State<Question1Screen> {
                   color: Colors.black54,
                   fromLeft: 0.0,
                 ),
-                const SizedBox(width: 48), // To balance the IconButton
+                const SizedBox(width: 48),
               ],
             ),
             const SizedBox(height: 30),
@@ -94,14 +93,13 @@ class _Question1ScreenState extends State<Question1Screen> {
               index: 0,
             ),
 
-            // This pushes the button to the bottom of the screen
             const Spacer(),
 
             // --- NEXT BUTTON ---
             Padding(
               padding: const EdgeInsets.only(bottom: 40.0),
               child: ElevatedButton(
-                // The `onPressed` is null when disabled, which automatically
+                // `onPressed` is null when disabled, which automatically
                 // gives it the disabled look and prevents taps.
                   onPressed: isNextButtonEnabled
                       ? () async {
@@ -125,7 +123,7 @@ class _Question1ScreenState extends State<Question1Screen> {
                   }
                       : null,
                 style: ElevatedButton.styleFrom(
-                  // Change color based on whether it's enabled
+                  // change color based on whether it's enabled
                   backgroundColor: isNextButtonEnabled
                       ? const Color(0xFF8e44ad)
                       : Colors.grey[300],
@@ -133,14 +131,14 @@ class _Question1ScreenState extends State<Question1Screen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  // Disable the shadow when the button is disabled
+                  // disable the shadow when the button is disabled
                   elevation: isNextButtonEnabled ? 2 : 0,
                 ),
                 child: CustomText(
                   "Continue",
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  // Change text color to be more readable when disabled
+                  // change text color to be more readable when disabled
                   color: isNextButtonEnabled ? Colors.white : Colors.grey[500],
                   fromLeft: 0.0,
                 ),

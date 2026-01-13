@@ -21,7 +21,7 @@ class _LocationManagerState extends State<LocationManager> {
   @override
   void initState() {
     super.initState();
-    // ✅ Call one master function that handles the sequence
+    // Call one master function that handles the sequence
     _initializeLogic();
   }
 

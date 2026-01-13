@@ -29,7 +29,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
   bool? seizureAlert;
   bool? doesCaregiverHasFriend;
 
-  // List to track pending requests for the red dot notification
+  // list to track pending requests for the red dot notification
   List<String> _pendingRequestsList = [];
 
   //load patientEmail cant async on initState
@@ -229,7 +229,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
               onPressed: () {
                 _refreshPendingRequests().then((_) {
                   showDialog(
-                    context: context,
+                    context: mounted? context : context,
                     builder: (BuildContext context) {
                       return StatefulBuilder(
                         builder: (context, setState) {
@@ -309,6 +309,10 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
                 return const Center(child: Text("No pending requests."));
               }
 
+
+
+
+
               return Column(
                 children: patients.map((patientEmail) {
                   return _requestRow(patientEmail, screenWidth, setState);
@@ -350,9 +354,9 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
                   Text(
                     patientRequestEmail,
                     style: const TextStyle(fontSize: 14),
-                    maxLines: 1, // ensure single line
+                    maxLines: 1,
                     overflow: TextOverflow
-                        .ellipsis, // Adds "..." if email is too long
+                        .ellipsis,
                   ),
                   const CustomText("Patient", fromLeft: 0, fontSize: 11),
                 ],
@@ -361,7 +365,7 @@ class _HomePageCaregiverState extends State<HomePageCaregiver> {
 
             // 3. The Buttons (Fixed Size)
             Row(
-              mainAxisSize: MainAxisSize.min, // takes minimum space needed
+              mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.red, size: 20),

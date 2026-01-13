@@ -93,7 +93,7 @@ class _Question3ScreenState extends State<Question3Screen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: TextField(
-                        controller: _phoneController, // <-- Add controller
+                        controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         style: const TextStyle(color: Colors.black, fontSize: 16),
                         decoration: InputDecoration(
@@ -109,7 +109,7 @@ class _Question3ScreenState extends State<Question3Screen> {
               const Spacer(),
               ElevatedButton(
                 onPressed: () async {
-                  await _savePhoneInSharedRef(); // <-- Save phone if entered
+                  await _savePhoneInSharedRef(); // <-- save phone if entered
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const Question4Screen()),

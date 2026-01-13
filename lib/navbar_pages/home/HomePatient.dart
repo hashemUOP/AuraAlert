@@ -34,13 +34,13 @@ class _HomePagePatientState extends State<HomePagePatient> {
 
   PatientStatus _currentStatus = PatientStatus.stable;
 
-  // To update the red dot on notification icon
+  // to update the red dot on notification icon
   List<String> _pendingRequestsList = [];
 
   Future<void> requestNotificationPermission() async {
     var status = await Permission.notification.status;
     if (status.isDenied) {
-      // This will show the native Android dialog asking for permission
+      // this will show the native Android dialog asking for permission
       await Permission.notification.request();
     }
   }
@@ -99,7 +99,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
     try {
       /// update ip address with new copied ip address from cmd ipconfig
       /// both laptop and physical devices must be connected to the same LAN
-      final uri = Uri.parse('http://192.168.100.60:8000/api/data/predict/');
+      final uri = Uri.parse('http://10.115.147.70:8000/api/data/predict/');
       final request = http.MultipartRequest('POST', uri)
         ..files.add(
           http.MultipartFile.fromBytes(
@@ -161,7 +161,7 @@ class _HomePagePatientState extends State<HomePagePatient> {
       }
 
       // delay 2 seconds so user can read "All done!"
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 0));
 
       if (mounted) {
         setState(() {

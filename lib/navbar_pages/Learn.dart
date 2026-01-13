@@ -40,7 +40,7 @@ final List<LearnTopic> learnTopics = [
     title: 'Types of Seizures',
     icon: Icons.dashboard_customize_outlined,
     color: Colors.orange,
-    imagePath: 'assets/assets/images/learn/seizure_types.webp',
+    imagePath: 'assets/images/learn/seizure_types.webp',
     content: 'Seizures are classified into two broad categories based on where they start in the brain: Focal seizures and Generalized seizures.\n\n'
         '1. FOCAL SEIZURES:\n'
         'These seizures start in one area or group of cells in one side of the brain.\n'
@@ -131,7 +131,7 @@ class EducationPage extends StatelessWidget {
                     const SizedBox(height: 24),
                     _buildLearnGrid(),
                     const SizedBox(height: 24),
-                    _buildDownloadCard(),
+                    // _buildDownloadCard(),
                   ],
                 ),
               ),
@@ -297,67 +297,67 @@ class EducationPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDownloadCard() {
-    return Card(
-      elevation: 0,
-      color: const Color(0xFFF0E6F6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: () async {
-          try {
-            final byteData = await rootBundle.load(
-              'assets/images/Seizure-First-Aid-Poster.png',
-            );
-
-            final tempDir = await getTemporaryDirectory();
-            final path = '${tempDir.path}/Seizure-First-Aid-Poster.png';
-
-            final file = File(path);
-            await file.writeAsBytes(byteData.buffer.asUint8List());
-
-            await Share.shareXFiles(
-              [XFile(path)],
-              text: 'Here is the Epilepsy First Aid card from my AuraAlert app.',
-            );
-          } catch (e) {
-            print('Error sharing image: $e');
-          }
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: const Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Row(
-            children: [
-              Icon(
-                Icons.download_for_offline_outlined,
-                color: Color(0xFF8e44ad),
-                size: 40,
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText(
-                      'Download First Aid Card',
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                      fromLeft: 0,
-                    ),
-                    CustomText(
-                      "Keep it offline, share it with your family.",
-                      fontSize: 14,
-                      color: Colors.black54,
-                      fromLeft: 0,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+//   Widget _buildDownloadCard() {
+//     return Card(
+//       elevation: 0,
+//       color: const Color(0xFFF0E6F6),
+//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+//       child: InkWell(
+//         onTap: () async {
+//           try {
+//             final byteData = await rootBundle.load(
+//               'assets/images/Seizure-First-Aid-Poster.png',
+//             );
+//
+//             final tempDir = await getTemporaryDirectory();
+//             final path = '${tempDir.path}/Seizure-First-Aid-Poster.png';
+//
+//             final file = File(path);
+//             await file.writeAsBytes(byteData.buffer.asUint8List());
+//
+//             await Share.shareXFiles(
+//               [XFile(path)],
+//               text: 'Here is the Epilepsy First Aid card from my AuraAlert app.',
+//             );
+//           } catch (e) {
+//             print('Error sharing image: $e');
+//           }
+//         },
+//         borderRadius: BorderRadius.circular(16),
+//         child: const Padding(
+//           padding: EdgeInsets.all(20.0),
+//           child: Row(
+//             children: [
+//               Icon(
+//                 Icons.download_for_offline_outlined,
+//                 color: Color(0xFF8e44ad),
+//                 size: 40,
+//               ),
+//               SizedBox(width: 16),
+//               Expanded(
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     CustomText(
+//                       'Download First Aid Card',
+//                       fontSize: 16,
+//                       fontWeight: FontWeight.bold,
+//                       color: Colors.black87,
+//                       fromLeft: 0,
+//                     ),
+//                     CustomText(
+//                       "Keep it offline, share it with your family.",
+//                       fontSize: 14,
+//                       color: Colors.black54,
+//                       fromLeft: 0,
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
 }

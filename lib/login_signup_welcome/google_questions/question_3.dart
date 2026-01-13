@@ -18,13 +18,13 @@ class Question3Screen extends StatefulWidget {
 
 class _Question3ScreenState extends State<Question3Screen> {
   String? _email;
-  User? _currentUser; // To hold the full user object (for UID)
+  User? _currentUser; // to hold user object
   final TextEditingController _nameController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Get the currently logged-in user (e.g., from Google Sign-In)
+    // get the currently logged-in user (e.g., from Google Sign-In)
     _currentUser = FirebaseAuth.instance.currentUser;
     _email = _currentUser?.email;
   }
@@ -44,7 +44,7 @@ class _Question3ScreenState extends State<Question3Screen> {
   }) async {
     String? token;
 
-    // 1. Try to get the token safely. If it fails, we just continue with null.
+    // 1. try to get the token safely. If it fails, we just continue with null.
     try {
       token = await FirebaseMessaging.instance.getToken();
     } catch (e) {
@@ -53,12 +53,12 @@ class _Question3ScreenState extends State<Question3Screen> {
       }
     }
 
-    // 2. Reference the collection
+    // 2. reference the collection
     CollectionReference usersCollection =
     FirebaseFirestore.instance.collection("UsersInfo");
 
-    // 3. Save Data (This will now run even if token failed)
-    // We rethrow the error here so the 'onPressed' knows if the SAVE failed.
+    // 3. save Data (This will now run even if token failed)
+    // we rethrow the error here so the 'onPressed' knows if the SAVE failed.
     try {
       await usersCollection.doc(email).set({
         'uid': uid,
@@ -74,7 +74,7 @@ class _Question3ScreenState extends State<Question3Screen> {
         print("User document created successfully");
       }
     } catch (e) {
-      // Rethrow the error so the UI knows to show a SnackBar or stop navigation
+      // rethrow the error so the UI knows to show a SnackBar or stop navigation
       throw Exception("Database write failed: $e");
     }
   }
@@ -160,7 +160,7 @@ class _Question3ScreenState extends State<Question3Screen> {
                 onPressed: () async {
                   await _saveNameInSharedRef();
 
-                  // Safety checks
+                  // safety checks
                   if (_email == null || _currentUser == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Error: User not authenticated")),
@@ -168,7 +168,7 @@ class _Question3ScreenState extends State<Question3Screen> {
                     return;
                   }
 
-                  // Load shared ref data
+                  // load shared ref data
                   final prefs = await SharedPreferences.getInstance();
                   int? choice = prefs.getInt('selectedOption');
                   String? phoneShared = prefs.getString('user_phone');

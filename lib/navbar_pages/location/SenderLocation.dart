@@ -21,7 +21,7 @@ class LocationService {
       if (permissionGranted != PermissionStatus.granted) return;
     }
 
-    // ✅ CRITICAL FIX: Force High Accuracy Settings
+    // CRITICAL FIX: Force High Accuracy Settings
     // Without this, the OS throttles updates to save battery.
     // interval: 5000 = update every 5 seconds
     // distanceFilter: 0 = update even if movement is small

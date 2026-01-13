@@ -78,7 +78,7 @@ class _Question4ScreenState extends State<Question4Screen> {
                   children: [
                     Expanded(
                       child: TextField(
-                        controller: _nameController, // <-- Add controller
+                        controller: _nameController,
                         keyboardType: TextInputType.text,
                         style: const TextStyle(color: Colors.black, fontSize: 16),
                         decoration: InputDecoration(
@@ -94,7 +94,7 @@ class _Question4ScreenState extends State<Question4Screen> {
               const Spacer(),
               ElevatedButton(
                 onPressed: () async {
-                  await _saveNameInSharedRef(); // <-- Save name if entered
+                  await _saveNameInSharedRef(); // <-- save name if entered
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const Question5Screen()),
