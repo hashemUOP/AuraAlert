@@ -1,7 +1,10 @@
 # aura_alert
 
-#AuraAlert_Project_Documentation
+AuraAlert Project Documentation:
 [AuraAlert-finalDoc.pdf](https://github.com/user-attachments/files/24687196/AuraAlert-finalDoc.pdf)
+
+AuraAlert Presentation:
+[AuraAlert_AI_Prediction.pdf](https://github.com/user-attachments/files/24687203/AuraAlert_AI_Prediction.pdf)
 
 
 ## Getting Started
