@@ -1,6 +1,7 @@
 # aura_alert
 
-A new Flutter project.
+AuraAlert Project Documentation:
+[AuraAlert-finalDoc.pdf](https://github.com/user-attachments/files/24687196/AuraAlert-finalDoc.pdf)
 
 ## Getting Started
 
