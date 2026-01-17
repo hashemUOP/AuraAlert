@@ -1,7 +1,8 @@
 # aura_alert
 
-AuraAlert Project Documentation:
+#AuraAlert_Project_Documentation
 [AuraAlert-finalDoc.pdf](https://github.com/user-attachments/files/24687196/AuraAlert-finalDoc.pdf)
+
 
 ## Getting Started
 
